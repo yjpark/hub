@@ -1,0 +1,18 @@
+[package]
+name = "sink_hub"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+link_hub = { path = "../link_hub" }
+
+tonic = { version = "0.6", features = [ "tls", "compression" ] }
+tonic-types = "0.4"
+prost = "0.9"
+prost-types = "0.9"
+serde = { version = "1", features = [ "derive" ]}
+
+[build-dependencies]
+tonic-build = { version = "0.6", features = ["prost", "compression"] }

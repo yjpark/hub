@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "link_hub",
+    "sink_hub",
+    "hub",
+]

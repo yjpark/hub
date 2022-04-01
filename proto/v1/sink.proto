@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package edger.hub.v1;
+
+import "link.proto";
+
+import "google/protobuf/any.proto";
+
+service SinkHub {
+  rpc Register(RegisterRequest) returns (RegisterResponse) {}
+  rpc Auth(stream AuthResult) returns (stream LinkAuthRequest) {}
+  rpc Handle(stream HandleResult) returns (stream LinkAppRequest) {}
+  rpc Publish(stream edger.hub.v1.AppEvent) returns (stream LinkAppSubscribe) {}
+}
+
+message RegisterRequest {
+  uint64 ord = 1;
+  string app_id = 2;
+  string sink_id = 3;
+  string token = 4;
+  google.protobuf.Any extra = 5;
+}
+
+message RegisterResponse {
+  uint64 ord = 1;
+  string trace_id = 2;
+  string session_id = 3;
+  google.protobuf.Any extra = 4;
+}
+
+message AuthResult {
+  oneof result {
+    edger.hub.v1.AuthResponse ok = 1;
+    google.protobuf.Any err = 2;
+  }
+}
+
+message LinkAuthRequest {
+  string trace_id = 1;
+  string link_address = 2;
+  string link_session = 3;
+  edger.hub.v1.AuthRequest req = 4;
+}
+
+message LinkAppRequest {
+  string trace_id = 1;
+  string link_address = 2;
+  edger.hub.v1.AppRequest req = 3;
+}
+
+message HandleResult {
+  oneof result {
+    edger.hub.v1.AppResponse ok = 1;
+    google.protobuf.Any err = 2;
+  }
+}
+
+message LinkAppSubscribe {
+  string trace_id = 1;
+  string link_address = 2;
+  edger.hub.v1.AppSubscribe sub = 3;
+}
