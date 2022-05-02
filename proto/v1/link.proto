@@ -1,6 +1,7 @@
 syntax = "proto3";
+// version: 1.0.0
 
-package edger.hub.v1;
+package edger.hub.v1.link;
 
 import "google/protobuf/any.proto";
 

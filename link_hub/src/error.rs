@@ -6,4 +6,5 @@ impl ErrorMessage {
     pub const INVALID_SESSION_ID: &'static str = "INVALID_SESSION_ID";
     pub const ALREADY_AUTHENTICATED: &'static str = "ALREADY_AUTHENTICATED";
     pub const INVALID_LINK_ID: &'static str = "INVALID_LINK_ID";
+    pub const INVALID_ORD: &'static str = "INVALID_ORD";
 }

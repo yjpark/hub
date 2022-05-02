@@ -8,11 +8,18 @@ edition = "2021"
 [dependencies]
 link_hub = { path = "../link_hub" }
 
+tokio = { version = "1.0", features = [ "full" ] }
+tokio-stream = "0.1"
 tonic = { version = "0.6", features = [ "tls", "compression" ] }
 tonic-types = "0.4"
 prost = "0.9"
 prost-types = "0.9"
-serde = { version = "1", features = [ "derive" ]}
+futures = "0.3"
+async-stream = "0.3"
+serde = { version = "1", features = [ "derive" ] }
+dashmap = "5"
+async-trait = "0.1"
+uuid = { version = "0.8", features = [ "v4" ] }
 
 [build-dependencies]
 tonic-build = { version = "0.6", features = ["prost", "compression"] }

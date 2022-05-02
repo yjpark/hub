@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use prost_types::Any;
 use tonic::{Status};
 use uuid::Uuid;
 
@@ -32,28 +31,6 @@ impl LinkAuthenticator for PublicUuidAuthenticator {
                 println!("PublicUuidAuthenticator.auth() failed: {} -> {}", req.link_id, err);
                 Err(Status::permission_denied(ErrorMessage::INVALID_LINK_ID))
             }
-        }
-    }
-}
-
-impl proto::AuthResponse {
-    pub fn new(req: &proto::AuthRequest, session_id: &SessionId) -> Self {
-        Self {
-            ord: req.ord,
-            session_id: session_id.0.clone(),
-            trace_id: "TODO".to_owned(),
-            extra: None,
-        }
-    }
-}
-
-impl proto::AppResponse {
-    pub fn new(req: &proto::AppRequest, data: Option<Any>) -> Self {
-        Self {
-            ord: req.ord,
-            session_id: req.session_id.clone(),
-            trace_id: "TODO".to_owned(),
-            data,
         }
     }
 }

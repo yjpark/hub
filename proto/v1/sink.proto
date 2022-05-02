@@ -1,6 +1,7 @@
 syntax = "proto3";
+// version: 1.0.0
 
-package edger.hub.v1;
+package edger.hub.v1.sink;
 
 import "link.proto";
 
@@ -10,7 +11,7 @@ service SinkHub {
   rpc Register(RegisterRequest) returns (RegisterResponse) {}
   rpc Auth(stream AuthResult) returns (stream LinkAuthRequest) {}
   rpc Handle(stream HandleResult) returns (stream LinkAppRequest) {}
-  rpc Publish(stream edger.hub.v1.AppEvent) returns (stream LinkAppSubscribe) {}
+  rpc Publish(stream edger.hub.v1.link.AppEvent) returns (stream LinkAppSubscribe) {}
 }
 
 message RegisterRequest {
@@ -28,10 +29,20 @@ message RegisterResponse {
   google.protobuf.Any extra = 4;
 }
 
+message SinkError {
+  uint64 ord = 1;
+  string session_id = 2;
+  string trace_id = 3;
+  int32 code = 4;
+  string message = 5;
+  google.protobuf.Any details = 6;
+}
+
 message AuthResult {
+  string sink_session = 1;
   oneof result {
-    edger.hub.v1.AuthResponse ok = 1;
-    google.protobuf.Any err = 2;
+    edger.hub.v1.link.AuthResponse ok = 2;
+    SinkError err = 3;
   }
 }
 
@@ -39,24 +50,25 @@ message LinkAuthRequest {
   string trace_id = 1;
   string link_address = 2;
   string link_session = 3;
-  edger.hub.v1.AuthRequest req = 4;
+  edger.hub.v1.link.AuthRequest req = 4;
 }
 
 message LinkAppRequest {
   string trace_id = 1;
   string link_address = 2;
-  edger.hub.v1.AppRequest req = 3;
+  edger.hub.v1.link.AppRequest req = 3;
 }
 
 message HandleResult {
+  string sink_session = 1;
   oneof result {
-    edger.hub.v1.AppResponse ok = 1;
-    google.protobuf.Any err = 2;
+    edger.hub.v1.link.AppResponse ok = 2;
+    SinkError err = 3;
   }
 }
 
 message LinkAppSubscribe {
   string trace_id = 1;
   string link_address = 2;
-  edger.hub.v1.AppSubscribe sub = 3;
+  edger.hub.v1.link.AppSubscribe sub = 3;
 }

@@ -1,9 +1,9 @@
 use async_trait::async_trait;
-use prost_types::Any;
 use std::fmt::{Debug, Display};
 use tonic::{Status};
 use tokio::sync::broadcast::Receiver;
 
+use crate::link_authenticator::LinkAuthenticator;
 use crate::link_session::{LinkId, SessionId};
 use crate::proto;
 use crate::error::ErrorMessage;
@@ -34,8 +34,12 @@ impl AppLink {
 
 #[async_trait]
 pub trait HubApp : Debug + Send + Sync + 'static {
+    fn as_any(&self) -> &dyn std::any::Any;
     async fn handle(&self, link: &AppLink, req: &proto::AppRequest) -> Result<proto::AppResponse, Status>;    
     async fn subscribe(&self, link: &AppLink, sub: &proto::AppSubscribe) -> Result<Receiver<proto::AppEvent>, Status>;    
+    async fn auth(&self, _trace_id: &str, _link_address: &str, link_session: &str, _req: &proto::AuthRequest) -> Result<SessionId, Status> {
+        Ok(SessionId(link_session.to_owned()))
+    }
 }
 
 #[derive(Debug)]
@@ -43,6 +47,9 @@ pub struct DummyApp {}
 
 #[async_trait]
 impl HubApp for DummyApp {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
     async fn handle(&self, link: &AppLink, req: &proto::AppRequest) -> Result<proto::AppResponse, Status> {
         println!("DummyApp.handle({:?} -> {:?})", link, req);
         let data = req.data.as_ref().map(|x| x.clone());

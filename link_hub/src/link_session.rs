@@ -1,6 +1,8 @@
-use std::{collections::{HashMap, HashSet}, fmt::Display};
+use std::{collections::{HashMap, HashSet}, fmt::Display, sync::{RwLockReadGuard, RwLockWriteGuard, RwLock}};
 
-use crate::{proto, hub_app::{AppId, AppLink}};
+use tonic::Status;
+
+use crate::{proto, hub_app::{AppId, AppLink}, error::ErrorMessage};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LinkId(pub String);
@@ -42,5 +44,19 @@ impl LinkSession {
             subscriptions: HashSet::new(),
             pending_requests: HashMap::new(),
         }
+    }
+    pub fn read_link_last_ord(x: RwLockReadGuard<LinkSession>) -> (AppLink, u64) {
+        (x.link.clone(), x.last_ord)
+    }
+    pub fn update_last_ord(mut x: RwLockWriteGuard<LinkSession>, ord: u64) {
+        x.last_ord = ord;
+    }
+    pub fn check_ord(session: &RwLock<LinkSession>, ord: u64) -> Result<AppLink, Status> {
+        let (link, last_ord) = LinkSession::read_link_last_ord(session.read().unwrap());
+        if ord <= last_ord {
+            return Err(Status::aborted(ErrorMessage::INVALID_ORD));
+        }
+        LinkSession::update_last_ord(session.write().unwrap(), ord);
+        Ok(link)
     }
 }

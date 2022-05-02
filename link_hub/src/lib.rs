@@ -4,9 +4,7 @@
 pub mod grpc {
     tonic::include_proto!("google.rpc");
 }
-pub mod proto {
-    tonic::include_proto!("edger.hub.v1");
-}
+pub mod proto;
 pub mod error;
 pub mod link_session;
 pub mod link_authenticator;

@@ -3,6 +3,7 @@ use tonic::{Request, Response, Status};
 use futures::Stream;
 use std::{pin::Pin, sync::{Arc, RwLock}};
 use dashmap::DashMap;
+use tokio_stream::{wrappers::ReceiverStream, StreamExt};
 
 use crate::{proto, hub_app::AppLink};
 use crate::link_session::{LinkId, SessionId, LinkSession};
@@ -17,30 +18,43 @@ pub struct LinkHub<TA>
     links: DashMap<LinkId, Vec<SessionId>>,
     sessions: DashMap<SessionId, Arc<RwLock<LinkSession>>>,
     authenticator: TA,
-    apps: DashMap<AppId, Arc<Box<dyn HubApp>>>,
+    apps: Arc<DashMap<AppId, Arc<Box<dyn HubApp>>>>,
     fallback_app: Option<Arc<Box<dyn HubApp>>>,
 }
 
 impl<TA: LinkAuthenticator> LinkHub<TA> {
+    pub const EVENT_CHANNEL_BUFFER_SIZE: usize = 16;
+
     pub fn new(authenticator: TA, fallback_app: Option<Arc<Box<dyn HubApp>>>) -> Self {
         Self {
             links: DashMap::new(),
             sessions: DashMap::new(),
             authenticator,
-            apps: DashMap::new(),
+            apps: Arc::new(DashMap::new()),
             fallback_app,
         }
     }
-    pub fn add_app(&mut self, app_id: &str, app: Arc<Box<dyn HubApp>>) {
+    pub fn get_apps(&self) -> Arc<DashMap<AppId, Arc<Box<dyn HubApp>>>> {
+        self.apps.clone()
+    }
+    pub fn add_app(&self, app_id: &str, app: Arc<Box<dyn HubApp>>) {
         self.apps.insert(AppId(app_id.to_owned()), app);
     }
     fn get_app(&self, app_id: &AppId) -> Result<Arc<Box<dyn HubApp>>, Status> {
         match self.apps.get(app_id) {
-            Some(app) => Ok(app.clone()),
+            Some(app) => {
+                println!("LinkHub found app: {} -> {:?}", app_id.0, app.clone());
+                Ok(app.clone())
+            },
             None => {
                 match self.fallback_app.as_ref() {
-                    Some(app) => Ok(app.clone()),
-                    None => Err(Status::permission_denied(ErrorMessage::INVALID_APP_ID)),
+                    Some(app) => {
+                        println!("LinkHub use fallback app: {} -> {:?}", app_id.0, app);
+                        Ok(app.clone())
+                    },
+                    None => {
+                        Err(Status::permission_denied(ErrorMessage::INVALID_APP_ID))
+                    },
                 }
             },
         }
@@ -90,7 +104,7 @@ type EventStream = Pin<Box<dyn Stream<Item = Result<proto::AppEvent, Status>> + 
 impl<TA: LinkAuthenticator + Send + Sync + 'static> proto::link_hub_server::LinkHub for LinkHub<TA> {
     async fn auth(&self, request: Request<proto::AuthRequest>) ->  Result<Response<proto::AuthResponse>, Status> {
         let app_id = AppId(request.get_ref().app_id.clone());
-        let _app = self.get_app(&app_id)?;
+        let app = self.get_app(&app_id)?;
         let link_id = LinkId(request.get_ref().link_id.clone());
         let old_session_ids = self.get_link_session_ids(&link_id);
         if old_session_ids.is_some() {
@@ -101,6 +115,7 @@ impl<TA: LinkAuthenticator + Send + Sync + 'static> proto::link_hub_server::Link
             }
         }
         let session_id = self.auth(request.get_ref()).await?;
+        let session_id = app.auth("TODO", "TODO", &session_id.0, request.get_ref()).await?;
         self.add_session(&app_id, &link_id, &session_id, request.get_ref().ord);
         Ok(Response::new(proto::AuthResponse::new(request.get_ref(), &session_id)))
     }
@@ -108,7 +123,7 @@ impl<TA: LinkAuthenticator + Send + Sync + 'static> proto::link_hub_server::Link
 
     async fn handle(&self, request: Request<proto::AppRequest>) ->  Result<Response<proto::AppResponse>, Status> {
         let session = self.get_session(&request.get_ref().session_id)?;
-        let link = &session.read().unwrap().link.clone();
+        let link = LinkSession::check_ord(session.as_ref(), request.get_ref().ord)?;
         let app = self.get_app(&link.app_id)?;
         let res = app.handle(&link, request.get_ref()).await;
         res.map(move |res| {
@@ -120,6 +135,33 @@ impl<TA: LinkAuthenticator + Send + Sync + 'static> proto::link_hub_server::Link
 
     async fn subscribe(&self, request: Request<proto::AppSubscribe>) -> Result<Response<Self::SubscribeStream>, Status> {
         let session = self.get_session(&request.get_ref().session_id)?;
-        Err(Status::unimplemented(ErrorMessage::UNDER_CONSTRUCTION))
+        let link = LinkSession::check_ord(session.as_ref(), request.get_ref().ord)?;
+        let app = self.get_app(&link.app_id)?;
+        let mut receiver = app.subscribe(&link, request.get_ref()).await?;
+        let (tx, rx) = tokio::sync::mpsc::channel(Self::EVENT_CHANNEL_BUFFER_SIZE);
+        tokio::spawn(async move {
+            loop {
+                match receiver.recv().await {
+                    Ok(event) => {
+                        println!("Event Receiver got event: {:?}", event);
+                        match tx.send(Result::<_, Status>::Ok(event)).await {
+                            Ok(_) => {},
+                            Err(err) => {
+                                println!("Forward Event got error: {:?}", err);
+                                break;
+                            }
+                        }
+                    },
+                    Err(err) => {
+                        println!("Event Receiver got error: {:?}", err);
+                        break;
+                    }
+                }
+            }
+        });
+        let out_stream = ReceiverStream::new(rx);
+        Ok(Response::new(
+            Box::pin(out_stream) as Self::SubscribeStream
+        ))
     }
 }
