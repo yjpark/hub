@@ -2,5 +2,7 @@
 members = [
     "crates/link_hub",
     "crates/sink_hub",
+    "crates/hub_sink",
     "apps/hub",
+    "apps/echo_sink",
 ]
