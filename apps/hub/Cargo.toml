@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-link_hub = { path = "../link_hub" }
-sink_hub = { path = "../sink_hub" }
+link_hub = { path = "../../crates/link_hub" }
+sink_hub = { path = "../../crates/sink_hub" }
 
 snafu = "0.7"
 tokio = { version = "1.0", features = [ "full" ] }

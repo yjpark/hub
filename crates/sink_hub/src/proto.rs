@@ -22,7 +22,7 @@ impl LinkAuthRequest {
             trace_id: trace_id.to_owned(), 
             link_address: link_address.to_owned(),
             link_session: link_session.to_owned(),
-            req: Some(req.clone()),
+            app_req: Some(req.clone()),
         }
     }
 }
@@ -32,7 +32,7 @@ impl LinkAppRequest {
         Self {
             trace_id: trace_id.to_owned(),
             link_address: link_address.to_owned(),
-            req: Some(req.clone()),
+            app_req: Some(req.clone()),
         }
     }
 }

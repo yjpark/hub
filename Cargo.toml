@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "link_hub",
-    "sink_hub",
-    "hub",
+    "crates/link_hub",
+    "crates/sink_hub",
+    "apps/hub",
 ]
