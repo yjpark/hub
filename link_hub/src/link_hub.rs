@@ -77,7 +77,7 @@ impl<TA: LinkAuthenticator> LinkHub<TA> {
         println!("LinkHub.kick_session() {} -> {}", link_id.0, session_id.0);
         self.sessions.remove(session_id);
     }
-    fn add_session(&self, app_id:&AppId, link_id: &LinkId, session_id: &SessionId, last_ord: u64) {
+    fn add_session(&self, app_id:&AppId, link_id: &LinkId, session_id: &SessionId, link_address: &str, last_ord: u64) {
         match self.links.get_mut(link_id) {
             None => {
                 self.links.insert(link_id.clone(), vec![session_id.clone()]);
@@ -92,7 +92,7 @@ impl<TA: LinkAuthenticator> LinkHub<TA> {
                 kv.value_mut().push(session_id.clone());
             },
         }
-        let link = AppLink::new(app_id, link_id, session_id);
+        let link = AppLink::new(app_id, link_id, session_id, link_address);
         let session = LinkSession::new(link, last_ord);
         self.sessions.insert(session_id.clone(), Arc::new(RwLock::new(session)));
     }
@@ -114,9 +114,11 @@ impl<TA: LinkAuthenticator + Send + Sync + 'static> proto::link_hub_server::Link
                 }
             }
         }
+        let trace_id = "TODO";
+        let link_address = "TODO";
         let session_id = self.auth(request.get_ref()).await?;
-        let session_id = app.auth("TODO", "TODO", &session_id.0, request.get_ref()).await?;
-        self.add_session(&app_id, &link_id, &session_id, request.get_ref().ord);
+        let session_id = app.auth(trace_id, link_address, &session_id.0, request.get_ref()).await?;
+        self.add_session(&app_id, &link_id, &session_id, link_address, request.get_ref().ord);
         Ok(Response::new(proto::AuthResponse::new(request.get_ref(), &session_id)))
     }
 
@@ -125,7 +127,7 @@ impl<TA: LinkAuthenticator + Send + Sync + 'static> proto::link_hub_server::Link
         let session = self.get_session(&request.get_ref().session_id)?;
         let link = LinkSession::check_ord(session.as_ref(), request.get_ref().ord)?;
         let app = self.get_app(&link.app_id)?;
-        let res = app.handle(&link, request.get_ref()).await;
+        let res = app.handle("TODO", &link, request.get_ref()).await;
         res.map(move |res| {
             Response::new(res)
         })
@@ -137,7 +139,7 @@ impl<TA: LinkAuthenticator + Send + Sync + 'static> proto::link_hub_server::Link
         let session = self.get_session(&request.get_ref().session_id)?;
         let link = LinkSession::check_ord(session.as_ref(), request.get_ref().ord)?;
         let app = self.get_app(&link.app_id)?;
-        let mut receiver = app.subscribe(&link, request.get_ref()).await?;
+        let mut receiver = app.subscribe("TODO", &link, request.get_ref()).await?;
         let (tx, rx) = tokio::sync::mpsc::channel(Self::EVENT_CHANNEL_BUFFER_SIZE);
         tokio::spawn(async move {
             loop {

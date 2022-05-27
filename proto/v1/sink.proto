@@ -19,7 +19,8 @@ message RegisterRequest {
   string app_id = 2;
   string sink_id = 3;
   string token = 4;
-  google.protobuf.Any extra = 5;
+  repeated int32 kinds = 5;
+  google.protobuf.Any extra = 6;
 }
 
 message RegisterResponse {
@@ -50,13 +51,13 @@ message LinkAuthRequest {
   string trace_id = 1;
   string link_address = 2;
   string link_session = 3;
-  edger.hub.v1.link.AuthRequest req = 4;
+  edger.hub.v1.link.AuthRequest app_req = 4;
 }
 
 message LinkAppRequest {
   string trace_id = 1;
   string link_address = 2;
-  edger.hub.v1.link.AppRequest req = 3;
+  edger.hub.v1.link.AppRequest app_req = 3;
 }
 
 message HandleResult {
@@ -70,5 +71,5 @@ message HandleResult {
 message LinkAppSubscribe {
   string trace_id = 1;
   string link_address = 2;
-  edger.hub.v1.link.AppSubscribe sub = 3;
+  edger.hub.v1.link.AppSubscribe app_sub = 3;
 }

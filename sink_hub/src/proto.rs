@@ -26,3 +26,13 @@ impl LinkAuthRequest {
         }
     }
 }
+
+impl LinkAppRequest {
+    pub fn new(trace_id: &str, link_address: &str, req: &AppRequest) -> Self {
+        Self {
+            trace_id: trace_id.to_owned(),
+            link_address: link_address.to_owned(),
+            req: Some(req.clone()),
+        }
+    }
+}

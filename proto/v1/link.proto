@@ -29,14 +29,16 @@ message AuthResponse {
 message AppRequest {
   uint64 ord = 1;
   string session_id = 2;
-  google.protobuf.Any data = 3;
+  int32 kind = 3;
+  google.protobuf.Any data = 4;
 }
 
 message AppResponse {
   uint64 ord = 1;
   string session_id = 2;
   string trace_id = 3;
-  google.protobuf.Any data = 4;
+  int32 kind = 4;
+  google.protobuf.Any data = 5;
 }
 
 message AppSubscribe {

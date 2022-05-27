@@ -24,6 +24,7 @@ pub struct SinkHub<TA>
 
 impl<TA: SinkAuthenticator> SinkHub<TA> {
     pub const AUTH_CHANNEL_BUFFER_SIZE: usize = 32;
+    pub const HANDLE_CHANNEL_BUFFER_SIZE: usize = 32;
     pub const EVENT_CHANNEL_BUFFER_SIZE: usize = 32;
 
     pub fn new(authenticator: TA, apps: Arc<DashMap<AppId, Arc<Box<dyn HubApp>>>>) -> Self {
@@ -41,8 +42,16 @@ impl<TA: SinkAuthenticator> SinkHub<TA> {
         match self.apps.get(app_id) {
             Some(app) => Ok(app.clone()),
             None => {
+                Err(Status::permission_denied(ErrorMessage::INVALID_APP_ID))
+            },
+        }
+    }
+    fn get_or_add_app(&self, app_id: &AppId, kinds: &Vec<i32>) -> Result<Arc<Box<dyn HubApp>>, Status> {
+        match self.apps.get(app_id) {
+            Some(app) => Ok(app.clone()),
+            None => {
                 if self.authenticator.allow_create_app() {
-                    let app = Arc::new(Box::new(SinkApp::new(app_id)) as Box<dyn HubApp>);
+                    let app = Arc::new(Box::new(SinkApp::new(app_id, kinds)) as Box<dyn HubApp>);
                     self.add_app(app_id.0.as_str(), app.clone());
                     Ok(app)
                 } else {
@@ -100,7 +109,8 @@ type AppSubscribeStream = Pin<Box<dyn Stream<Item = Result<proto::LinkAppSubscri
 impl<TA: SinkAuthenticator + Send + Sync + 'static> proto::sink_hub_server::SinkHub for SinkHub<TA> {
     async fn register(&self, request: Request<proto::RegisterRequest>) ->  Result<Response<proto::RegisterResponse> ,Status> {
         let app_id = AppId(request.get_ref().app_id.clone());
-        let _app = self.get_app(&app_id)?;
+        let kinds = request.get_ref().kinds.clone();
+        let _app = self.get_or_add_app(&app_id, &kinds)?;
         let sink_id = SinkId(request.get_ref().sink_id.clone());
         let old_session_ids = self.get_sink_session_ids(&sink_id);
         if old_session_ids.is_some() {
@@ -176,7 +186,61 @@ impl<TA: SinkAuthenticator + Send + Sync + 'static> proto::sink_hub_server::Sink
 
     type HandleStream = AppRequestStream;
     async fn handle(&self, request: Request<tonic::Streaming<proto::HandleResult>>) ->  Result<Response<Self::HandleStream> , Status> {
-        Err(Status::unimplemented(ErrorMessage::UNDER_CONSTRUCTION))
+        let mut res_stream = request.into_inner();
+        let (tx, rx) = tokio::sync::mpsc::channel(Self::HANDLE_CHANNEL_BUFFER_SIZE);
+        let tx = Arc::new(tx);
+        let sessions = self.sessions.clone();
+        let apps = self.apps.clone();
+        tokio::spawn(async move {
+            let mut is_init = true;
+            let mut sink_session = None;
+            let mut app = None;
+            while let Some(result) = res_stream.next().await {
+                match result {
+                    Ok(res) => {
+                        if is_init {
+                            is_init = false;
+                            sink_session = Some(SessionId(res.sink_session.clone()));
+                            if let Some(session) = sessions.get(&sink_session.as_ref().unwrap()) {
+                                let app_id = session.read().unwrap().sink.app_id.clone();
+                                app = apps.get(&app_id).map(|x| x.clone());
+                                if app.is_some() {
+                                    SinkApp::as_sink_app(app.as_ref().unwrap()).set_handle_request_sender(tx.clone());
+                                }
+                            }
+                            if app.is_none() {
+                                println!("SinkHub::handle(), init failed");
+                                break;
+                            }
+                        } else {
+                            if sink_session.as_ref().unwrap().0 != res.sink_session.clone() {
+                                println!("SinkHub::handle(), bad sink_session: {} -> {}", sink_session.unwrap().0, res.sink_session);
+                                break;
+                            }
+                        }
+                        if let Some(app) = app.as_ref() {
+                            match res.result {
+                                Some(result) => {
+                                    SinkApp::as_sink_app(&app).notify_handle(result);
+                                },
+                                None => {
+                                    println!("SinkHub::handle(), got nothing");
+                                    break;
+                                },
+                            }
+                        }
+                    },
+                    Err(status) => {
+                        println!("SinkHub::handle(), got error: {:?}", status);
+                        break;
+                    }
+                }
+            }
+        });
+        let out_stream = ReceiverStream::new(rx);
+        Ok(Response::new(
+            Box::pin(out_stream) as Self::HandleStream
+        ))
     }
 
     type PublishStream = AppSubscribeStream;

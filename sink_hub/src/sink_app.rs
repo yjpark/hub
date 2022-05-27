@@ -9,23 +9,29 @@ use tokio::sync::broadcast::Receiver;
 use link_hub::hub_app::{AppId, HubApp, AppLink};
 
 use link_hub::proto;
-use crate::proto::{auth_result, LinkAuthRequest};
+use crate::proto::{auth_result, LinkAuthRequest, handle_result, LinkAppRequest};
 
 use crate::error::ErrorMessage;
 
 #[derive(Debug)]
 pub struct SinkApp {
     pub app_id: AppId,
+    pub kinds: Vec<i32>,
     auth_request_sender: RwLock<Option<Arc<tokio::sync::mpsc::Sender<Result<LinkAuthRequest, Status>>>>>,
     auth_notifiers: DashMap<SessionId, tokio::sync::oneshot::Sender<auth_result::Result>>,
+    handle_request_sender: RwLock<Option<Arc<tokio::sync::mpsc::Sender<Result<LinkAppRequest, Status>>>>>,
+    handle_notifiers: DashMap<SessionId, tokio::sync::oneshot::Sender<handle_result::Result>>,
 }
 
 impl SinkApp {
-    pub fn new(app_id: &AppId) -> Self {
+    pub fn new(app_id: &AppId, kinds: &Vec<i32>) -> Self {
         Self {
             app_id: app_id.clone(),
+            kinds: kinds.clone(),
             auth_request_sender: RwLock::new(None),
             auth_notifiers: DashMap::new(),
+            handle_request_sender: RwLock::new(None),
+            handle_notifiers: DashMap::new(),
         }
     }
     pub fn is_sink_app(app: &Box<dyn HubApp>) -> bool {
@@ -59,6 +65,31 @@ impl SinkApp {
             }
         }
     }
+    pub fn set_handle_request_sender(&self, sender: Arc<tokio::sync::mpsc::Sender<Result<LinkAppRequest, Status>>>) {
+        let mut guard = self.handle_request_sender.write().unwrap();
+        *guard = Some(sender);
+    }
+    pub fn notify_handle(&self, result: handle_result::Result) -> bool {
+        let session_id = match &result {
+            handle_result::Result::Ok(res) => SessionId(res.session_id.clone()),
+            handle_result::Result::Err(err) => SessionId(err.session_id.clone()),
+        };
+        match self.handle_notifiers.remove(&session_id) {
+            Some((_, notifier)) => {
+                if let Err(err) = notifier.send(result) {
+                    println!("SinkApp::notify_handle() failed: {} -> {:?}", session_id.0, err);
+                    false
+                } else {
+                    println!("SinkApp::notify_handle() succeed: {}", session_id.0);
+                    true
+                }
+            },
+            None => {
+                println!("SinkApp::notify_handle() failed: {} -> notifier not found", session_id.0);
+                false
+            }
+        }
+    }
 }
 
 #[async_trait]
@@ -66,16 +97,8 @@ impl HubApp for SinkApp {
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
-    async fn handle(&self, link: &AppLink, req: &proto::AppRequest) -> Result<proto::AppResponse, Status> {
-        println!("DummyApp.handle({:?} -> {:?})", link, req);
-        let data = req.data.as_ref().map(|x| x.clone());
-        Ok(proto::AppResponse::new(req, data))
-    }
-    async fn subscribe(&self, link: &AppLink, sub: &proto::AppSubscribe) -> Result<Receiver<proto::AppEvent>, Status> {
-        println!("DummyApp.subscribe({:?} -> {:?})", link, sub);
-        Err(Status::unimplemented(ErrorMessage::UNDER_CONSTRUCTION))
-    }
     async fn auth(&self, trace_id: &str, link_address: &str, link_session: &str, req: &proto::AuthRequest) -> Result<SessionId, Status> {
+        println!("SinkApp.auth({:?} {:?} {:?} -> {:?})", trace_id, link_address, link_session, req);
         let mut sender = None;
         {
             sender = self.auth_request_sender.read().unwrap().as_ref().map(|x| x.clone());
@@ -103,5 +126,39 @@ impl HubApp for SinkApp {
                 Err(Status::internal(err.to_string()))
             }
         }
+    }
+    async fn handle(&self, trace_id: &str, link: &AppLink, req: &proto::AppRequest) -> Result<proto::AppResponse, Status> {
+        println!("SinkApp.handle({:?} {:?} -> {:?})", trace_id, link, req);
+        let mut sender = None;
+        {
+            sender = self.handle_request_sender.read().unwrap().as_ref().map(|x| x.clone());
+        }
+        if sender.is_none() {
+            return Err(Status::internal("TODO"));
+        }
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        self.handle_notifiers.insert(link.session_id.clone(), tx);
+        if let Err(err) = sender.unwrap().send(Ok(LinkAppRequest::new(trace_id, &link.link_address, req))).await {
+            return Err(Status::internal(err.to_string()));
+        }
+        match rx.await {
+            Ok(result) => {
+                match result {
+                    handle_result::Result::Ok(res) => {
+                        Ok(res)
+                    },
+                    handle_result::Result::Err(status) => {
+                        Err(Status::new(Code::from_i32(status.code), status.message.clone()))
+                    },
+                }
+            },
+            Err(err) => {
+                Err(Status::internal(err.to_string()))
+            }
+        }
+    }
+    async fn subscribe(&self, trace_id: &str, link: &AppLink, sub: &proto::AppSubscribe) -> Result<Receiver<proto::AppEvent>, Status> {
+        println!("SinkApp.subscribe({:?} {:?} -> {:?})", trace_id, link, sub);
+        Err(Status::unimplemented(ErrorMessage::UNDER_CONSTRUCTION))
     }
 }

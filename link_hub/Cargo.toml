@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+snafu = "0.7"
 tokio = { version = "1.0", features = [ "full" ] }
 tokio-stream = "0.1"
 tonic = { version = "0.6", features = [ "tls", "compression" ] }

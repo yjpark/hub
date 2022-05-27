@@ -146,7 +146,7 @@ message PreconditionFailure {
     // The type of PreconditionFailure. We recommend using a service-specific
     // enum type to define the supported precondition violation subjects. For
     // example, "TOS" for "Terms of Service violation".
-    string type = 1;
+    string kind = 1;
 
     // The subject, relative to the type, that failed.
     // For example, "google.com/cloud" relative to the "TOS" type would indicate
@@ -199,7 +199,7 @@ message ResourceInfo {
   // A name for the type of resource being accessed, e.g. "sql table",
   // "cloud storage bucket", "file", "Google calendar"; or the type URL
   // of the resource: e.g. "type.googleapis.com/google.pubsub.v1.Topic".
-  string resource_type = 1;
+  string resource_kind = 1;
 
   // The name of the resource being accessed.  For example, a shared calendar
   // name: "example.com_4fghdhgsrgh@group.calendar.google.com", if the current

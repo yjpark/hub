@@ -19,6 +19,7 @@ impl AppResponse {
             ord: req.ord,
             session_id: req.session_id.clone(),
             trace_id: "TODO".to_owned(),
+            kind: req.kind,
             data,
         }
     }

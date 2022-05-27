@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 link_hub = { path = "../link_hub" }
 
+snafu = "0.7"
 tokio = { version = "1.0", features = [ "full" ] }
 tokio-stream = "0.1"
 tonic = { version = "0.6", features = [ "tls", "compression" ] }
