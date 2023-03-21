@@ -20,7 +20,7 @@
       }).buildPackage { src = ./.; };
        */
       let
-        overlays = [ fenix.overlay ];
+        overlays = [ fenix.overlays.default ];
         pkgs = import nixpkgs {
           inherit system overlays;
         };
