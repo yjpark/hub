@@ -1,10 +1,10 @@
 [workspace]
 members = [
-    "crates/sink_hub",
-    "crates/link_hub",
-    "crates/hub_sink",
-    "crates/hub_link",
-    "apps/hub",
-    "apps/echo_sink",
-    "apps/echo_link",
+    "grpc/sink_hub",
+    "grpc/link_hub",
+    "grpc/hub_sink",
+    "grpc/hub_link",
+    "demo/grpc_hub",
+    "demo/echo_sink",
+    "demo/echo_link",
 ]

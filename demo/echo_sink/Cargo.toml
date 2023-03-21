@@ -1,12 +1,12 @@
 [package]
-name = "echo_link"
+name = "echo_sink"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-hub_link = { path = "../../crates/hub_link" }
+hub_sink = { path = "../../grpc/hub_sink" }
 
 snafu = "0.7"
 tokio = { version = "1.0", features = [ "full" ] }
@@ -21,3 +21,4 @@ clap = { version = "3", features = [ "derive" ] }
 
 [build-dependencies]
 tonic-build = { version = "0.6", features = ["prost", "compression"] }
+

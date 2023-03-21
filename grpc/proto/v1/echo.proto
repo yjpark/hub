@@ -1,0 +1,25 @@
+syntax = "proto3";
+// version: 1.0.0
+
+package edger.hub.v1.echo;
+
+import "google/protobuf/timestamp.proto";
+
+service EchoApp {
+  rpc echo(EchoRequest) returns (EchoResponse) {}
+}
+
+enum EchoKinds {
+  ANY = 0;
+  ECHO = 1;
+}
+
+message EchoRequest {
+  google.protobuf.Timestamp time = 1;
+  string message = 2;
+}
+
+message EchoResponse {
+  google.protobuf.Timestamp time = 1;
+  string message = 2;
+}
