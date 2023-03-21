@@ -1,5 +1,10 @@
 [workspace]
 members = [
+    "core",
+    "config",
+    "admin/api",
+    "admin/web",
+    "cli",
     "grpc/sink_hub",
     "grpc/link_hub",
     "grpc/hub_sink",
