@@ -1,10 +1,15 @@
+[workspace.package]
+edition = "2021"
+license = "MIT"
+homepage = "https://github.com/edger-dev/hub"
+repository = "https://github.com/edger-dev/hub"
+
 [workspace]
 members = [
     "core",
-    "config",
     "admin/api",
     "admin/web",
-    "cli",
+    "hub",
     "grpc/sink_hub",
     "grpc/link_hub",
     "grpc/hub_sink",
@@ -13,3 +18,16 @@ members = [
     "demo/echo_sink",
     "demo/echo_link",
 ]
+
+[workspace.dependencies]
+axum = "0.6.12"
+hyper = { version = "0.14.25", features = ["full"] }
+tower = { version = "0.4.13", features = ["full"] }
+tokio = { version = "1.26.0", features = ["full"] }
+
+tracing = "0.1.37"
+snafu = "0.7.4"
+extism = "0.3.0"
+
+clap = { version = "4.1.14", features = [ "derive" ] }
+tracing-subscriber = "0.3.16"
