@@ -3,8 +3,8 @@ use std::sync::Arc;
 use clap::{Parser, Subcommand};
 use tonic::{transport::Server};
 
-use link_hub::{proto::link_hub_server, hub_app::DummyApp};
-use sink_hub::{proto::sink_hub_server};
+use hub_grpc_link_hub::{proto::link_hub_server, hub_app::DummyApp};
+use hub_grpc_sink_hub::{proto::sink_hub_server};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -31,8 +31,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let port = port.unwrap_or(DEFAULT_PORT);
             println!("Running Hub: port = {:?}", port);
             let addr = format!("0.0.0.0:{}", port).parse().unwrap();
-            let link_hub = link_hub::link_hub::LinkHub::new(link_hub::link_authenticator::PublicUuidAuthenticator{}, Some(Arc::new(Box::new(DummyApp{}))));
-            let sink_hub = sink_hub::sink_hub::SinkHub::new(sink_hub::sink_authenticator::PublicUuidAuthenticator{}, link_hub.get_apps());
+            let link_hub = hub_grpc_link_hub::link_hub::LinkHub::new(hub_grpc_link_hub::link_authenticator::PublicUuidAuthenticator{}, Some(Arc::new(Box::new(DummyApp{}))));
+            let sink_hub = hub_grpc_sink_hub::sink_hub::SinkHub::new(hub_grpc_sink_hub::sink_authenticator::PublicUuidAuthenticator{}, link_hub.get_apps());
             Server::builder()
                 .add_service(link_hub_server::LinkHubServer::new(link_hub))
                 .add_service(sink_hub_server::SinkHubServer::new(sink_hub))

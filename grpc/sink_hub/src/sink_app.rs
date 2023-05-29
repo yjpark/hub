@@ -2,13 +2,13 @@ use std::sync::{Arc, RwLock};
 
 use async_trait::async_trait;
 use dashmap::DashMap;
-use link_hub::link_session::SessionId;
+use hub_grpc_link_hub::link_session::SessionId;
 use tonic::{Status, Code};
 use tokio::sync::broadcast::Receiver;
 
-use link_hub::hub_app::{AppId, HubApp, AppLink};
+use hub_grpc_link_hub::hub_app::{AppId, HubApp, AppLink};
 
-use link_hub::proto;
+use hub_grpc_link_hub::proto;
 use crate::proto::{auth_result, LinkAuthRequest, handle_result, LinkAppRequest};
 
 use crate::error::ErrorMessage;

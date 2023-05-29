@@ -1,7 +1,6 @@
 [package]
-name = "echo_sink"
-publish = false
-version = "0.0.0"
+name = "hub_grpc_sink"
+version = "0.1.0"
 
 edition = { workspace = true }
 license = { workspace = true }
@@ -11,8 +10,6 @@ repository = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-hub_sink = { path = "../../grpc/hub_sink" }
-
 snafu = "0.7"
 tokio = { version = "1.0", features = [ "full" ] }
 tokio-stream = "0.1"
@@ -21,9 +18,11 @@ tonic-types = "0.4"
 prost = "0.9"
 prost-types = "0.9"
 futures = "0.3"
+async-stream = "0.3"
+serde = { version = "1", features = [ "derive" ] }
+dashmap = "5"
+async-trait = "0.1"
 uuid = { version = "0.8", features = [ "v4" ] }
-clap = { version = "3", features = [ "derive" ] }
 
 [build-dependencies]
 tonic-build = { version = "0.6", features = ["prost", "compression"] }
-

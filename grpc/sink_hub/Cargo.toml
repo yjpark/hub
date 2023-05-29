@@ -1,5 +1,5 @@
 [package]
-name = "sink_hub"
+name = "hub_grpc_sink_hub"
 version = "0.1.0"
 
 edition = { workspace = true }
@@ -10,7 +10,7 @@ repository = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-link_hub = { path = "../link_hub" }
+hub_grpc_link_hub = { workspace = true }
 
 snafu = "0.7"
 tokio = { version = "1.0", features = [ "full" ] }

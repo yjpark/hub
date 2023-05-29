@@ -1,5 +1,5 @@
 [package]
-name = "cub_core"
+name = "hub_proxy_hudsucker"
 version = "0.1.0"
 
 edition = { workspace = true }

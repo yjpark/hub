@@ -5,8 +5,8 @@ use std::{pin::Pin, sync::{Arc, RwLock}, net::SocketAddr};
 use dashmap::DashMap;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
 
-use link_hub::{hub_app::{HubApp, AppId}, link_hub::LinkHub};
-use link_hub::link_session::SessionId;
+use hub_grpc_link_hub::{hub_app::{HubApp, AppId}, link_hub::LinkHub};
+use hub_grpc_link_hub::link_session::SessionId;
 use crate::{proto, sink_app::SinkApp, sink_session};
 use crate::sink_session::{AppSink, SinkId, SinkSession};
 use crate::error::{ErrorMessage, LinkErrorMessage};

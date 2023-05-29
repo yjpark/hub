@@ -1,4 +1,4 @@
-pub use link_hub::proto::*;
+pub use hub_grpc_link_hub::proto::*;
 use prost_types::Any;
 
 use crate::sink_session::SessionId;

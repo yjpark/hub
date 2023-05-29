@@ -1,6 +1,6 @@
 pub struct ErrorMessage();
 
-pub type LinkErrorMessage = link_hub::error::ErrorMessage;
+pub type LinkErrorMessage = hub_grpc_link_hub::error::ErrorMessage;
 
 impl ErrorMessage {
     pub const UNDER_CONSTRUCTION: &'static str = LinkErrorMessage::UNDER_CONSTRUCTION;

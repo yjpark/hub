@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use tonic::{Status};
 use uuid::Uuid;
 
-use link_hub::link_session::SessionId;
+use hub_grpc_link_hub::link_session::SessionId;
 use crate::error::ErrorMessage;
 use crate::proto;
 
@@ -20,7 +20,7 @@ pub trait SinkAuthenticator {
     async fn auth(&self, req: &proto::RegisterRequest) -> Result<SessionId, Status>;    
 }
 
-pub type PublicUuidAuthenticator = link_hub::link_authenticator::PublicUuidAuthenticator;
+pub type PublicUuidAuthenticator = hub_grpc_link_hub::link_authenticator::PublicUuidAuthenticator;
 
 #[async_trait]
 impl SinkAuthenticator for PublicUuidAuthenticator {

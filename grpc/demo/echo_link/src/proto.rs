@@ -1,7 +1,7 @@
 use prost::Message;
 use prost_types::Any;
 
-use hub_link::{proto::AppRequest, hub_session::SessionId};
+use hub_grpc_link::{proto::AppRequest, hub_session::SessionId};
 
 use crate::echo::{EchoKinds, EchoRequest};
 

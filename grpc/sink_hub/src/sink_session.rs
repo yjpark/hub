@@ -11,8 +11,8 @@ impl From<&str> for SinkId {
     }
 }
 
-pub type SessionId = link_hub::link_session::SessionId;
-pub use link_hub::hub_app::AppId;
+pub type SessionId = hub_grpc_link_hub::link_session::SessionId;
+pub use hub_grpc_link_hub::hub_app::AppId;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AppSink {
@@ -35,7 +35,7 @@ impl AppSink {
     }
 }
 
-pub type LinkErrorMessage = link_hub::error::ErrorMessage;
+pub type LinkErrorMessage = hub_grpc_link_hub::error::ErrorMessage;
 
 #[derive(Debug)]
 pub struct SinkSession {

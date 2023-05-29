@@ -4,7 +4,7 @@ use std::io::Cursor;
 use prost::Message;
 use prost_types::Any;
 
-use hub_sink::proto::{LinkAppRequest, AppResponse};
+use hub_grpc_sink::proto::{LinkAppRequest, AppResponse};
 
 use crate::echo::{EchoKinds, EchoRequest, EchoResponse};
 

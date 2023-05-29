@@ -4,8 +4,8 @@ use uuid::Uuid;
 use futures::stream::Stream;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
 
-use hub_link::proto::{link_hub_client::LinkHubClient, AuthRequest, AppRequest};
-use hub_link::hub_session::SessionId;
+use hub_grpc_link::proto::{link_hub_client::LinkHubClient, AuthRequest, AppRequest};
+use hub_grpc_link::hub_session::SessionId;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

@@ -3,7 +3,7 @@ use tonic::transport::Channel;
 use uuid::Uuid;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
 
-use hub_sink::proto::{sink_hub_client::SinkHubClient, RegisterRequest, AuthResult, AuthResponse, RegisterResponse, HandleResult};
+use hub_grpc_sink::proto::{sink_hub_client::SinkHubClient, RegisterRequest, AuthResult, AuthResponse, RegisterResponse, HandleResult};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
