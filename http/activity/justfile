@@ -1,0 +1,12 @@
+build:
+    just clear-buffer
+    cargo build
+clear-buffer:
+    echo -e -n "\\0033c"
+    tmux clear-history
+build-all:
+    just clear-buffer
+    cargo build --features "rkyv"
+    cargo build --features "serde"
+    cargo build --features "rkyv,serde"
+

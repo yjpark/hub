@@ -10,9 +10,18 @@ repository = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+hub_proxy_hudsucker = { workspace = true }
+hub_admin_api = { workspace = true }
+
+tokio = { workspace = true }
 axum = { workspace = true }
 clap = { workspace = true }
-tokio = { workspace = true }
+clap-verbosity-flag = { workspace = true }
+serde = { workspace = true }
+secrecy = { workspace = true }
+figment = { workspace = true }
+directories = { workspace = true }
 
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+tracing-log = { workspace = true }

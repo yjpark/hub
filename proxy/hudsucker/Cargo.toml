@@ -10,3 +10,8 @@ repository = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+tokio = { workspace = true }
+secrecy = { workspace = true }
+tracing = { workspace = true }
+hudsucker = { workspace = true }
+rustls-pemfile = { workspace = true }

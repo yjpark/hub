@@ -1,5 +1,5 @@
 [package]
-name = "hub_http_core"
+name = "hub_http_history"
 version = "0.1.0"
 
 edition = { workspace = true }
@@ -10,3 +10,6 @@ repository = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+http = { workspace = true }
+rkyv = { workspace = true }
+dashmap = { workspace = true }

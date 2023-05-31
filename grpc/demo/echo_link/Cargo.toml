@@ -13,16 +13,16 @@ repository = { workspace = true }
 [dependencies]
 hub_grpc_link = { workspace = true }
 
-snafu = "0.7"
-tokio = { version = "1.0", features = [ "full" ] }
-tokio-stream = "0.1"
-tonic = { version = "0.6", features = [ "tls", "compression" ] }
-tonic-types = "0.4"
-prost = "0.9"
-prost-types = "0.9"
-futures = "0.3"
-uuid = { version = "0.8", features = [ "v4" ] }
-clap = { version = "3", features = [ "derive" ] }
+snafu = { workspace = true }
+tokio = { workspace = true }
+tokio-stream = { workspace = true }
+tonic = { workspace = true }
+tonic-types = { workspace = true }
+prost = { workspace = true }
+prost-types = { workspace = true }
+futures = { workspace = true }
+uuid = { workspace = true }
+clap = { workspace = true }
 
 [build-dependencies]
-tonic-build = { version = "0.6", features = ["prost", "compression"] }
+tonic-build = { workspace = true }
