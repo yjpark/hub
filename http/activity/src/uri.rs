@@ -21,3 +21,9 @@ impl From<&http::Uri> for HttpUri {
         }
     }
 }
+
+impl From<http::Uri> for HttpUri {
+    fn from(value: http::Uri) -> Self {
+        (&value).into()
+    }
+}

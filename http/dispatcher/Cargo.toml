@@ -1,5 +1,5 @@
 [package]
-name = "hub_proxy_hudsucker"
+name = "hub_http_dispatcher"
 version = "0.1.0"
 
 edition = { workspace = true }
@@ -10,8 +10,14 @@ repository = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { workspace = true }
+dashmap = { workspace = true }
+snafu = { workspace = true }
+globset = { workspace = true }
+http = { workspace = true }
+url = { workspace = true }
+reqwest = { workspace = true }
 secrecy = { workspace = true }
 tracing = { workspace = true }
-hudsucker = { workspace = true }
-rustls-pemfile = { workspace = true }
+derivative = { workspace = true }
+serde = { workspace = true, optional = true }
+hyper = { workspace = true, optional = true }

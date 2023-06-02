@@ -45,60 +45,45 @@ impl HttpRequest {
     }
 }
 
-impl From<http::Request<()>> for HttpRequest {
-    fn from(value: http::Request<()>) -> Self {
+impl From<(http::request::Parts, HttpBody)> for HttpRequest {
+    fn from(value: (http::request::Parts, HttpBody)) -> Self {
+        let parts = value.0;
         let mut notes = Vec::new();
         Self {
-            method: Self::to_method(value.method()),
-            uri: value.uri().into(),
-            version: Self::to_version(value.version()), 
-            headers: Self::to_headers(value.headers(), &mut notes),
-            body: HttpBody::None,
+            method: Self::to_method(&parts.method),
+            uri: parts.uri.into(),
+            version: Self::to_version(parts.version), 
+            headers: Self::to_headers(&parts.headers, &mut notes),
+            body: value.1,
             notes,
         }
+    }
+}
+
+impl From<http::Request<()>> for HttpRequest {
+    fn from(value: http::Request<()>) -> Self {
+        let (parts, _body) = value.into_parts();
+        (parts, HttpBody::None).into()
     }
 }
 
 impl From<http::Request<String>> for HttpRequest {
     fn from(value: http::Request<String>) -> Self {
-        let mut notes = Vec::new();
-        Self {
-            method: Self::to_method(value.method()),
-            uri: value.uri().into(),
-            version: Self::to_version(value.version()), 
-            headers: Self::to_headers(value.headers(), &mut notes),
-            body: HttpBody::Text(value.body().clone()),
-            notes,
-        }
+        let (parts, body) = value.into_parts();
+        (parts, HttpBody::Text(body)).into()
     }
 }
 
-#[cfg(feature = "rkyv")]
 impl From<http::Request<Vec<u8>>> for HttpRequest {
     fn from(value: http::Request<Vec<u8>>) -> Self {
-        let mut notes = Vec::new();
-        Self {
-            method: Self::to_method(value.method()),
-            uri: value.uri().into(),
-            version: Self::to_version(value.version()), 
-            headers: Self::to_headers(value.headers(), &mut notes),
-            body: HttpBody::Bytes(value.body().clone()),
-            notes,
-        }
+        let (parts, body) = value.into_parts();
+        (parts, HttpBody::Bytes(body)).into()
     }
 }
 
-#[cfg(not(feature = "rkyv"))]
 impl From<http::Request<bytes::Bytes>> for HttpRequest {
     fn from(value: http::Request<bytes::Bytes>) -> Self {
-        let mut notes = Vec::new();
-        Self {
-            method: Self::to_method(value.method()),
-            uri: value.uri().into(),
-            version: Self::to_version(value.version()), 
-            headers: Self::to_headers(value.headers(), &mut notes),
-            body: HttpBody::Bytes(value.body().clone()),
-            notes,
-        }
+        let (parts, body) = value.into_parts();
+        (parts, HttpBody::Bytes(body.to_vec())).into()
     }
 }

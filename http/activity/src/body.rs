@@ -5,8 +5,5 @@
 pub enum HttpBody {
     None,
     Text(String),
-    #[cfg(feature = "rkyv")]
     Bytes(Vec<u8>),
-    #[cfg(not(feature = "rkyv"))]
-    Bytes(bytes::Bytes),
 }

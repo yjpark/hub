@@ -9,8 +9,22 @@ repository = { workspace = true }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+
+default = [
+    "hudsucker",
+]
+
+hudsucker = [
+    "dep:hudsucker",
+    "dep:rustls-pemfile",
+    "dep:bstr",
+]
+
 [dependencies]
-hub_proxy_hudsucker = { workspace = true }
+hub_http_activity = { workspace = true, features = [ "rkyv", "serde" ] }
+hub_http_history = { workspace = true, features = [ "rkyv", "serde" ] }
+hub_http_dispatcher = { workspace = true, features = [ "hyper", "serde" ] }
 hub_admin_api = { workspace = true }
 
 tokio = { workspace = true }
@@ -21,6 +35,11 @@ serde = { workspace = true }
 secrecy = { workspace = true }
 figment = { workspace = true }
 directories = { workspace = true }
+once_cell = { workspace = true }
+
+rustls-pemfile = { workspace = true, optional = true }
+hudsucker = { workspace = true, optional = true }
+bstr = { workspace = true, optional = true }
 
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }

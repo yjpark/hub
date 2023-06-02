@@ -1,8 +1,12 @@
-use tracing::{info, warn, debug};
+use tracing::{info, debug};
 use tracing_log::AsTrace;
-use axum::Router;
-use axum::routing::get;
 use clap::Parser;
+
+async fn shutdown_signal() {
+    tokio::signal::ctrl_c()
+        .await
+        .expect("failed to install CTRL+C signal handler");
+}
 
 #[tokio::main]
 async fn main() {
@@ -17,20 +21,11 @@ async fn main() {
     info!("loading config from path: {:#?}", args.config);
     let config = hub::Config::load(&args);
     debug!("running with hub config: {:#?}", config);
-    let app = Router::new()
-        .route("/", get(|| async { "TODO" }));
-    let proxy = hub_proxy_hudsucker::Proxy::new(config.clone().into());
-    proxy.start();
-    tokio::task::spawn(
-        async move {
-            warn!(host = config.host, port = config.port, "starting hub server");
-            axum::Server::bind(&config.address())
-                .serve(app.into_make_service())
-                .await
-                .unwrap();
-        }
-    );
-    tokio::signal::ctrl_c()
-        .await
-        .expect("failed to install CTRL+C signal handler");
+
+    hub::app::start(&config);
+
+    #[cfg(feature = "hudsucker")]
+    hub::proxy::hudsucker::start(&config, shutdown_signal());
+
+    shutdown_signal().await;
 }

@@ -36,6 +36,10 @@ impl Config {
         std::net::SocketAddr::from((self.host.parse::<std::net::IpAddr>().expect("invalid host"), self.port))
     }
 
+    pub fn proxy_address(&self) -> std::net::SocketAddr {
+        std::net::SocketAddr::from((self.host.parse::<std::net::IpAddr>().expect("invalid host"), self.proxy_port))
+    }
+
     pub fn load(args: &crate::Args) -> Self {
         use figment::Figment;
         use figment::providers::{Format, Toml, Env, Serialized};
@@ -53,16 +57,5 @@ impl Config {
             .merge(Serialized::defaults(args))
             .extract()
             .unwrap()
-    }
-}
-
-impl Into<hub_proxy_hudsucker::Config> for Config {
-    fn into(self) -> hub_proxy_hudsucker::Config {
-        hub_proxy_hudsucker::Config {
-            host: self.host,
-            port: self.proxy_port,
-            private_key: self.private_key,
-            certificate: self.certificate,
-        }
     }
 }
