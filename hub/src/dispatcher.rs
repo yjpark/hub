@@ -8,7 +8,7 @@ pub static DISPATCHER: Lazy<Dispatcher> = Lazy::new(|| {
 });
 
 pub fn create_dispatcher_config() -> Config {
-    let proxy = Proxy::http("10.0.1.6", 29002);
+    let proxy = Proxy::http("127.0.0.1", 29002);
     //let proxy = Proxy::socks5("10.0.1.6", 29001);
     Config {
         proxies: vec![proxy.clone()],

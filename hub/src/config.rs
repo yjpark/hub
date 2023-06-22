@@ -10,7 +10,7 @@ pub struct Config {
     #[serde(skip_serializing)]
     pub private_key: Secret<String>,
     #[serde(skip_serializing)]
-    pub certificate: Secret<String>, 
+    pub certificate: Secret<String>,
 }
 
 impl secrecy::SerializableSecret for Config {}
@@ -22,7 +22,7 @@ impl Default for Config {
             port: 3300,
             proxy_port: 3301,
             private_key: "AA".to_string().into(),
-            certificate: "BB".to_string().into(), 
+            certificate: "BB".to_string().into(),
         }
     }
 }
