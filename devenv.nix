@@ -11,6 +11,7 @@
     grafana
     podman
     duckdb
+    ockam
   ];
 
   # https://devenv.sh/languages/
