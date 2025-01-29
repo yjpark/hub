@@ -8,6 +8,8 @@
   # https://devenv.sh/packages/
   packages = with pkgs ; [
     git
+    grafana
+    podman
   ];
 
   # https://devenv.sh/languages/
@@ -16,7 +18,7 @@
   # https://devenv.sh/processes/
   process.managers.process-compose.tui.enable = true;
 
-  # processes.influxdb3.exec = "";
+  #processes.grafana.exec = "";
 
   # https://devenv.sh/services/
   # services.postgres.enable = true;
