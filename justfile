@@ -1,3 +1,6 @@
+show-tables:
+    just query_hub show tables
+
 podman-ps:
     podman ps
 
@@ -9,13 +12,19 @@ podman-run-influxdb3:
 podman-run-grafana:
     podman run -p 43122:3000 --name grafana grafana/grafana-enterprise
 
-influxdb3 *ARGS:
-    podman exec influxdb3 influxdb3 {{ARGS}}
+influxdb *ARGS:
+    podman exec -it influxdb3 influxdb3 {{ARGS}}
 
 default_db := "hub"
 
 create-database db=default_db:
-    just influxdb3 create database {{db}}
+    just influxdb create database {{db}}
+
+query db *ARGS:
+    just influxdb query --database {{db}} '"{{ARGS}}"'
+
+query_hub *ARGS:
+    just query hub {{ARGS}}
 
 show-grafana-tips:
     # add data source for influxdb
