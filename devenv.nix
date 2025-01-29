@@ -10,6 +10,7 @@
     git
     grafana
     podman
+    duckdb
   ];
 
   # https://devenv.sh/languages/
