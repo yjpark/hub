@@ -3,6 +3,7 @@
 {
   # https://devenv.sh/basics/
   env.GREET = "devenv";
+  env.PODMAN_IGNORE_CGROUPSV1_WARNING = "1";
 
   # https://devenv.sh/packages/
   packages = with pkgs ; [
@@ -15,7 +16,7 @@
   # https://devenv.sh/processes/
   process.managers.process-compose.tui.enable = true;
 
-  processes.influxdb3.exec = "docker run --rm quay.io/influxdb/influxdb3-core:latest serve --node-id=local01 --object-store=memory";
+  # processes.influxdb3.exec = "";
 
   # https://devenv.sh/services/
   # services.postgres.enable = true;
