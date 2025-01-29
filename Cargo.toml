@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 extism = "1.9.1"
+ockam = "0.147.0"
