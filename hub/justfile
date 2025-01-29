@@ -1,7 +1,0 @@
-run:
-    just clear-buffer
-    cargo run --features "hudsucker"
-clear-buffer:
-    echo -e -n "\\0033c"
-    tmux clear-history
-
