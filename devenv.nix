@@ -18,6 +18,7 @@
 
   # https://devenv.sh/languages/
   languages.rust.enable = true;
+  languages.rust.channel = "stable";
 
   # https://devenv.sh/processes/
   process.managers.process-compose.tui.enable = true;
