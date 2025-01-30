@@ -12,8 +12,8 @@
     podman
     duckdb
     ockam
-    erg
-    python3
+    gleam
+    erlang_27
   ];
 
   # https://devenv.sh/languages/

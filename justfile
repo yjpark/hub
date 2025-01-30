@@ -31,3 +31,6 @@ show-grafana-tips:
     # URL -> http://host.docker.internal:43121
     # database -> hub
     # insecure connection -> on
+
+install-wash:
+    cargo install --locked wash-cli
