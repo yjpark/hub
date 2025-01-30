@@ -297,6 +297,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "capnp"
+version = "0.20.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bce4e2d41c16cf9188f47ca4d59fdcdca1f33705af211bdb41f0afbd3442f8b5"
+dependencies = [
+ "embedded-io 0.6.1",
+]
+
+[[package]]
 name = "cbindgen"
 version = "0.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1339,6 +1348,7 @@ dependencies = [
 name = "hub"
 version = "0.1.0"
 dependencies = [
+ "capnp",
  "extism",
  "ockam",
 ]

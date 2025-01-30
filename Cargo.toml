@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+capnp = "0.20.3"
 extism = "1.9.1"
 ockam = "0.147.0"
