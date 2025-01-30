@@ -12,6 +12,8 @@
     podman
     duckdb
     ockam
+    erg
+    python3
   ];
 
   # https://devenv.sh/languages/
