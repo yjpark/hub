@@ -14,6 +14,7 @@
     ockam
     gleam
     erlang_27
+    natscli
   ];
 
   # https://devenv.sh/languages/

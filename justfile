@@ -34,3 +34,7 @@ show-grafana-tips:
 
 install-wash:
     cargo install --locked wash-cli
+
+wash-ui:
+    # need to run v0.5.0, the latest (v0.6.0) is not working
+    wash ui --experimental --version v0.5.0
