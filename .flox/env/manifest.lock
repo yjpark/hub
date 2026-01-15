@@ -1,0 +1,382 @@
+{
+  "lockfile-version": 1,
+  "manifest": {
+    "version": 1,
+    "install": {
+      "just": {
+        "pkg-path": "just"
+      },
+      "omnix": {
+        "pkg-path": "omnix"
+      },
+      "wasm-tools": {
+        "pkg-path": "wasm-tools"
+      }
+    },
+    "hook": {},
+    "profile": {},
+    "options": {}
+  },
+  "packages": [
+    {
+      "attr_path": "just",
+      "broken": false,
+      "derivation": "/nix/store/l38hwf1d8wvb1fhr94nwv28ak35vvrkn-just-1.46.0.drv",
+      "description": "Handy way to save and run project-specific commands",
+      "install_id": "just",
+      "license": "CC0-1.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "name": "just-1.46.0",
+      "pname": "just",
+      "rev": "ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "rev_count": 925861,
+      "rev_date": "2026-01-11T10:35:08Z",
+      "scrape_date": "2026-01-12T02:57:20.389076Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.46.0",
+      "outputs_to_install": [
+        "man",
+        "out"
+      ],
+      "outputs": {
+        "doc": "/nix/store/0lmvwpfys5fkjff8bf9zckzp137n0gjr-just-1.46.0-doc",
+        "man": "/nix/store/b3jskd4jbk1xy7gmhzhapmf0s3qfgjjv-just-1.46.0-man",
+        "out": "/nix/store/vsv9adrq0irdx5cxlj16yjlym01pb58v-just-1.46.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "just",
+      "broken": false,
+      "derivation": "/nix/store/v2xzcbr6jr56iwnxjpsys2q5m68pnv4k-just-1.46.0.drv",
+      "description": "Handy way to save and run project-specific commands",
+      "install_id": "just",
+      "license": "CC0-1.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "name": "just-1.46.0",
+      "pname": "just",
+      "rev": "ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "rev_count": 925861,
+      "rev_date": "2026-01-11T10:35:08Z",
+      "scrape_date": "2026-01-12T03:13:28.408523Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.46.0",
+      "outputs_to_install": [
+        "man",
+        "out"
+      ],
+      "outputs": {
+        "doc": "/nix/store/jfakhs2ca94q913qv11i864hfgds32rn-just-1.46.0-doc",
+        "man": "/nix/store/z87cf5g4gxnbzrswypw0c2vfq7cd7qs9-just-1.46.0-man",
+        "out": "/nix/store/5xvqd6914l6bq4chkvxhwpxmwsyjvk79-just-1.46.0"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "just",
+      "broken": false,
+      "derivation": "/nix/store/s20w7py4gwm55x1nnfgmkma00q4kfb5w-just-1.46.0.drv",
+      "description": "Handy way to save and run project-specific commands",
+      "install_id": "just",
+      "license": "CC0-1.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "name": "just-1.46.0",
+      "pname": "just",
+      "rev": "ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "rev_count": 925861,
+      "rev_date": "2026-01-11T10:35:08Z",
+      "scrape_date": "2026-01-12T03:23:55.823341Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.46.0",
+      "outputs_to_install": [
+        "man",
+        "out"
+      ],
+      "outputs": {
+        "doc": "/nix/store/fhrjjd4zlzkr1pb1a5581rc5rpzl83js-just-1.46.0-doc",
+        "man": "/nix/store/ajl8m1jly6vnlgi7674slnas8hha5fzv-just-1.46.0-man",
+        "out": "/nix/store/a9x4nkvyiqnsbc5c7m4hxbdd66ppjvzp-just-1.46.0"
+      },
+      "system": "x86_64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "just",
+      "broken": false,
+      "derivation": "/nix/store/6ldcyd9piq21d5pxnnb01d1hm7dxga4p-just-1.46.0.drv",
+      "description": "Handy way to save and run project-specific commands",
+      "install_id": "just",
+      "license": "CC0-1.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "name": "just-1.46.0",
+      "pname": "just",
+      "rev": "ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "rev_count": 925861,
+      "rev_date": "2026-01-11T10:35:08Z",
+      "scrape_date": "2026-01-12T03:33:57.123484Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.46.0",
+      "outputs_to_install": [
+        "man",
+        "out"
+      ],
+      "outputs": {
+        "doc": "/nix/store/wy4s0z7rcizywylg9nbyklx07d7a8kxy-just-1.46.0-doc",
+        "man": "/nix/store/jlr7zha9axbwy8ccqs4h6myra019mhf3-just-1.46.0-man",
+        "out": "/nix/store/rjx80xk7ly0i4d6sflilvphpx9drqdgd-just-1.46.0"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "omnix",
+      "broken": false,
+      "derivation": "/nix/store/y2qnrhfi5jcrk4ncgzr6gy2ml8pkvw6c-omnix-1.3.2.drv",
+      "description": "Nix companion to improve developer experience",
+      "install_id": "omnix",
+      "license": "AGPL-3.0-only",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "name": "omnix-1.3.2",
+      "pname": "omnix",
+      "rev": "ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "rev_count": 925861,
+      "rev_date": "2026-01-11T10:35:08Z",
+      "scrape_date": "2026-01-12T02:57:30.111768Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.3.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/q22zbhx67kv63s3ail70rnw0m3rmad7b-omnix-1.3.2"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "omnix",
+      "broken": false,
+      "derivation": "/nix/store/4bfi2bz05i7zhvpwd98p77yc767l3s7k-omnix-1.3.2.drv",
+      "description": "Nix companion to improve developer experience",
+      "install_id": "omnix",
+      "license": "AGPL-3.0-only",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "name": "omnix-1.3.2",
+      "pname": "omnix",
+      "rev": "ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "rev_count": 925861,
+      "rev_date": "2026-01-11T10:35:08Z",
+      "scrape_date": "2026-01-12T03:13:46.995818Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.3.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/j3qpg5d5z4lwz044lq992dy5wldw0g69-omnix-1.3.2"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "omnix",
+      "broken": false,
+      "derivation": "/nix/store/jr9bczc271k3za6k80a541gs5m1ndnzb-omnix-1.3.2.drv",
+      "description": "Nix companion to improve developer experience",
+      "install_id": "omnix",
+      "license": "AGPL-3.0-only",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "name": "omnix-1.3.2",
+      "pname": "omnix",
+      "rev": "ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "rev_count": 925861,
+      "rev_date": "2026-01-11T10:35:08Z",
+      "scrape_date": "2026-01-12T03:24:05.824678Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.3.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/jhskgqxps4lyqm8ikcf3w7vi41pishhm-omnix-1.3.2"
+      },
+      "system": "x86_64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "omnix",
+      "broken": false,
+      "derivation": "/nix/store/bvmwxkg1pxrlzbydnjnxs6byjfslss6w-omnix-1.3.2.drv",
+      "description": "Nix companion to improve developer experience",
+      "install_id": "omnix",
+      "license": "AGPL-3.0-only",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "name": "omnix-1.3.2",
+      "pname": "omnix",
+      "rev": "ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "rev_count": 925861,
+      "rev_date": "2026-01-11T10:35:08Z",
+      "scrape_date": "2026-01-12T03:34:19.740641Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.3.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/xc9qgdszlqnczi3sjnlz3vywpv9dpp2y-omnix-1.3.2"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "wasm-tools",
+      "broken": false,
+      "derivation": "/nix/store/87np0bz1a6krhf8rlv1s7p8j10sfy2g5-wasm-tools-1.244.0.drv",
+      "description": "Low level tooling for WebAssembly in Rust",
+      "install_id": "wasm-tools",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "name": "wasm-tools-1.244.0",
+      "pname": "wasm-tools",
+      "rev": "ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "rev_count": 925861,
+      "rev_date": "2026-01-11T10:35:08Z",
+      "scrape_date": "2026-01-12T02:59:34.625261Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.244.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/hg4gsibrv7fb6d2y5ahjzsry1dkqqvis-wasm-tools-1.244.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "wasm-tools",
+      "broken": false,
+      "derivation": "/nix/store/psrc1qlkrx5xnc46kd1z6rgm976pyad8-wasm-tools-1.244.0.drv",
+      "description": "Low level tooling for WebAssembly in Rust",
+      "install_id": "wasm-tools",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "name": "wasm-tools-1.244.0",
+      "pname": "wasm-tools",
+      "rev": "ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "rev_count": 925861,
+      "rev_date": "2026-01-11T10:35:08Z",
+      "scrape_date": "2026-01-12T03:16:14.806988Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.244.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/f2aq7sg4wzqm38vhb0ij6jzzsmqpbjps-wasm-tools-1.244.0"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "wasm-tools",
+      "broken": false,
+      "derivation": "/nix/store/rajw2c30k0k58px5z88vsgwb26l5p6lx-wasm-tools-1.244.0.drv",
+      "description": "Low level tooling for WebAssembly in Rust",
+      "install_id": "wasm-tools",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "name": "wasm-tools-1.244.0",
+      "pname": "wasm-tools",
+      "rev": "ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "rev_count": 925861,
+      "rev_date": "2026-01-11T10:35:08Z",
+      "scrape_date": "2026-01-12T03:26:12.206607Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.244.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/8yp26892nbx5n4drda603xcjh1qdmv28-wasm-tools-1.244.0"
+      },
+      "system": "x86_64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "wasm-tools",
+      "broken": false,
+      "derivation": "/nix/store/ipzby29bydx0cv3rb46krv12l2pikvr3-wasm-tools-1.244.0.drv",
+      "description": "Low level tooling for WebAssembly in Rust",
+      "install_id": "wasm-tools",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "name": "wasm-tools-1.244.0",
+      "pname": "wasm-tools",
+      "rev": "ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38",
+      "rev_count": 925861,
+      "rev_date": "2026-01-11T10:35:08Z",
+      "scrape_date": "2026-01-12T03:37:04.948223Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.244.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/kq4mhk7yxh6fhv0n5z2a5nsvg87yhxh6-wasm-tools-1.244.0"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    }
+  ]
+}

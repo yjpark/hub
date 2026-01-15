@@ -1,0 +1,44 @@
+[workspace]
+members = [
+    "crates/*",
+]
+exclude = [
+]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+homepage = "https://hub.edger.dev"
+repository = "https://github.com/edger-dev/hub"
+authors = ["YJ Park <yjpark@gmail.com>"]
+
+[workspace.dependencies]
+edger-hub-core = { path = "crates/core", version = "0.1.0-dev" }
+
+tracing = "0.1.41"
+snafu = "0.8.5"
+serde = { version = "1.0.219", features = ["derive", "alloc"] }
+
+[package]
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version = "1.89.0"
+
+name = "edger-hub"
+version = "0.1.0-dev"
+exclude = [
+    "assets/",
+    "tools/",
+    ".github/",
+    "crates/",
+    "examples/wasm/assets/",
+]
+description = "Edger Hub"
+keywords = [
+    "dev",
+]
+categories = ["dev"]
