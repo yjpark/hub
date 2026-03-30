@@ -37,6 +37,21 @@ be running and ask them to start it in a Zellij pane with `mise run bacon-claude
 
 Use 'bd' for task tracking, bead(s) is alias of task(s)
 
+**DO NOT use `bd edit`** - it opens an interactive editor ($EDITOR) which AI agents cannot use.
+
+Use `bd update` with flags instead:
+```bash
+bd update <id> --description "new description"
+bd update <id> --title "new title"
+bd update <id> --design "design notes"
+bd update <id> --notes "additional notes"
+bd update <id> --acceptance "acceptance criteria"
+
+# Use stdin for descriptions with special characters (backticks, !, nested quotes)
+echo 'Description with `backticks` and "quotes"' | bd create "Title" --description=-
+echo 'Updated text' | bd update <id> --description=-
+```
+
 Do NOT write design docs or plans to `docs/plans/`. All planning and design
 work should be captured directly in beads.
 
