@@ -30,3 +30,8 @@ target
 .crates.toml
 .crates2.json
 
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
