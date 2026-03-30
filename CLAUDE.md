@@ -50,6 +50,12 @@ bd update <id> --acceptance "acceptance criteria"
 # Use stdin for descriptions with special characters (backticks, !, nested quotes)
 echo 'Description with `backticks` and "quotes"' | bd create "Title" --description=-
 echo 'Updated text' | bd update <id> --description=-
+
+# Add a comment
+bd comments add hub-123 "Working on this now"
+
+# Add a comment from a file
+bd comments add hub-123 -f notes.txt
 ```
 
 Do NOT write design docs or plans to `docs/plans/`. All planning and design
