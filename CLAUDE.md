@@ -35,34 +35,12 @@ be running and ask them to start it in a Zellij pane with `mise run bacon-claude
 
 ## Planning
 
-Use 'bd' for task tracking, bead(s) is alias of task(s)
-
-**DO NOT use `bd edit`** - it opens an interactive editor ($EDITOR) which AI agents cannot use.
-
-Use `bd update` with flags instead:
-```bash
-bd update <id> --description "new description"
-bd update <id> --title "new title"
-bd update <id> --design "design notes"
-bd update <id> --notes "additional notes"
-bd update <id> --acceptance "acceptance criteria"
-
-# Use stdin for descriptions with special characters (backticks, !, nested quotes)
-echo 'Description with `backticks` and "quotes"' | bd create "Title" --description=-
-echo 'Updated text' | bd update <id> --description=-
-
-# Add a comment
-bd comments add hub-123 "Working on this now"
-
-# Add a comment from a file
-bd comments add hub-123 -f notes.txt
-```
-
 Do NOT write design docs or plans to `docs/plans/`. All planning and design
-work should be captured directly in beads.
+work should be captured directly in beans (description + body). Beans are the
+single source of truth for tracking work.
 
 Do NOT start implementation during the planning stage. The outcome of planning
-is beads with clear specs — enough detail for a clean design and implementation
+is beans with clear specs — enough detail for a clean design and implementation
 stage later.
 
 ## Development Workflow
