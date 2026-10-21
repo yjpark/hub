@@ -92,6 +92,20 @@ impl ConsumerApi for ConsumerApiHandler {
     }
 
     async fn publish(&self, event: hub_protocol::HubEvent) -> Result<u32, HubError> {
+        // `hub/` topics are the hub's own word to its subscribers.
+        if event.topic.starts_with("hub/") {
+            return Err(HubError::Rejected(format!(
+                "topic {:?}: `hub/` topics are the hub's own",
+                event.topic
+            )));
+        }
+        if event.payload.len() > hub_protocol::MAX_EVENT_PAYLOAD {
+            return Err(HubError::Rejected(format!(
+                "a {}-byte payload is over the {}-byte ceiling: publish a pointer, not the thing",
+                event.payload.len(),
+                hub_protocol::MAX_EVENT_PAYLOAD
+            )));
+        }
         Ok(self.hub.publish(event).await)
     }
 
@@ -102,9 +116,8 @@ impl ConsumerApi for ConsumerApiHandler {
     ) -> Result<(), HubError> {
         // The channel streams within this call: hold the call open until the
         // subscriber is gone.
-        if let Some(gone) = self.hub.subscribe_events(prefix, events).await {
-            let _ = gone.await;
-        }
+        let gone = self.hub.subscribe_events(prefix, events).await;
+        let _ = gone.await;
         Ok(())
     }
 

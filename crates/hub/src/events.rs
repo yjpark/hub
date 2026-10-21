@@ -1,23 +1,34 @@
 //! Event fan-out — events the hub carries and never reads.
 //!
 //! A subscriber names a topic prefix; every published event whose topic starts
-//! with it is delivered, in the order the hub received them. A subscriber
-//! whose channel has gone away is dropped silently, as a topology subscriber
-//! is: a console tab closing is ordinary.
+//! with it is delivered, in the order the hub received them. Each subscriber
+//! has a bounded queue of its own and a task that forwards from it, so a
+//! publisher never waits on any subscriber: one that falls `QUEUE` events
+//! behind (it stopped reading, its link stalled) is dropped, and re-reads the
+//! store it was being told about. A subscriber that is gone is dropped too —
+//! whether a send to it fails or its subscribe call was cancelled.
 //!
 //! implements: 19983ca5288dc57fe00341ecd0dc00c1c97138a2312cd965a1b86acc9f2e01a8@19983ca5288dc57fe00341ecd0dc00c1c97138a2312cd965a1b86acc9f2e01a8
 
 use hub_protocol::HubEvent;
+use tokio::sync::{mpsc, oneshot};
 use vox::Tx;
 
-/// One subscriber: its prefix, its channel, and the token whose drop ends
-/// the subscribe call that is holding the channel open.
-type Subscriber = (String, Tx<HubEvent>, tokio::sync::oneshot::Sender<()>);
+/// Events one subscriber may fall behind by before it is dropped.
+const QUEUE: usize = 256;
 
-/// The live event subscribers, each with its topic prefix.
+/// One subscriber: its prefix, its queue, and the token whose drop evicts it
+/// (stopping its forwarding task).
+struct Subscriber {
+    prefix: String,
+    queue: mpsc::Sender<HubEvent>,
+    _evict: oneshot::Sender<()>,
+}
+
+/// The live event subscribers.
 #[derive(Default)]
 pub struct EventSubscribers {
-    channels: Vec<Subscriber>,
+    subscribers: Vec<Subscriber>,
 }
 
 impl EventSubscribers {
@@ -26,48 +37,78 @@ impl EventSubscribers {
         Self::default()
     }
 
-    /// Add a subscriber for every topic starting with `prefix`. The returned
-    /// receiver resolves when the subscriber is dropped (its channel gone), so
-    /// the call holding the channel open knows to return.
+    /// Add a subscriber for every topic starting with `prefix`; `hello` is
+    /// queued first, so nothing published after it can be missed. The
+    /// returned receiver resolves when the subscriber's forwarding stops — the
+    /// call holding its channel open then returns.
     pub fn add(
         &mut self,
         prefix: String,
         events: Tx<HubEvent>,
-    ) -> tokio::sync::oneshot::Receiver<()> {
-        let (alive, gone) = tokio::sync::oneshot::channel();
-        self.channels.push((prefix, events, alive));
+        hello: HubEvent,
+    ) -> oneshot::Receiver<()> {
+        self.subscribers.retain(|s| !s.queue.is_closed());
+        let (queue, mut queued) = mpsc::channel::<HubEvent>(QUEUE);
+        let (alive, gone) = oneshot::channel::<()>();
+        let (evict, mut evicted) = oneshot::channel::<()>();
+        // A fresh queue has room: the hello is always first.
+        let _ = queue.try_send(hello);
+        tokio::spawn(async move {
+            let mut alive = alive;
+            loop {
+                let event = tokio::select! {
+                    event = queued.recv() => match event {
+                        Some(event) => event,
+                        None => break,
+                    },
+                    _ = alive.closed() => break,
+                    _ = &mut evicted => break,
+                };
+                tokio::select! {
+                    sent = events.send(event) => if sent.is_err() { break },
+                    _ = alive.closed() => break,
+                    _ = &mut evicted => break,
+                }
+            }
+            // Dropping `alive` ends the subscriber's call.
+        });
+        self.subscribers.push(Subscriber {
+            prefix,
+            queue,
+            _evict: evict,
+        });
         gone
     }
 
     /// How many subscribers are attached.
     pub fn len(&self) -> usize {
-        self.channels.len()
+        self.subscribers.len()
     }
 
     /// Whether anyone is listening.
     pub fn is_empty(&self) -> bool {
-        self.channels.is_empty()
+        self.subscribers.is_empty()
     }
 
-    /// Deliver `event` to every subscriber whose prefix matches its topic,
-    /// dropping those that have gone away. Returns how many received it.
-    pub async fn publish(&mut self, event: HubEvent) -> u32 {
-        let mut live = Vec::with_capacity(self.channels.len());
-        let mut delivered = 0u32;
-        for (prefix, channel, alive) in std::mem::take(&mut self.channels) {
-            if !event.topic.starts_with(&prefix) {
-                live.push((prefix, channel, alive));
-                continue;
+    /// Queue `event` for every subscriber whose prefix matches its topic,
+    /// without waiting on any; one whose queue is full or closed is dropped.
+    /// Returns how many it was queued for.
+    pub fn publish(&mut self, event: &HubEvent) -> u32 {
+        let mut queued = 0u32;
+        self.subscribers.retain(|s| {
+            if !event.topic.starts_with(&s.prefix) {
+                return !s.queue.is_closed();
             }
-            if channel.send(event.clone()).await.is_ok() {
-                delivered = delivered.saturating_add(1);
-                live.push((prefix, channel, alive));
+            match s.queue.try_send(event.clone()) {
+                Ok(()) => {
+                    queued = queued.saturating_add(1);
+                    true
+                }
+                // Full: it stopped keeping up. Closed: it is gone.
+                Err(_) => false,
             }
-            // A send error means the consumer is gone — drop the channel, and
-            // with it the token, which ends its subscribe call.
-        }
-        self.channels = live;
-        delivered
+        });
+        queued
     }
 }
 

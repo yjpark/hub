@@ -91,28 +91,25 @@ impl<T: Clone> Hub<T> {
             .map(|(_, entry)| entry.handle.clone())
     }
 
-    /// Publish an event to every subscriber whose prefix matches its topic;
-    /// how many it reached.
+    /// Queue an event for every subscriber whose prefix matches its topic;
+    /// how many it was queued for. Never waits on a subscriber.
     pub async fn publish(&self, event: hub_protocol::HubEvent) -> u32 {
-        self.events.lock().await.publish(event).await
+        self.events.lock().await.publish(&event)
     }
 
-    /// Attach a consumer to every event whose topic starts with `prefix`,
-    /// after telling it the subscription is live. The returned receiver
-    /// resolves once the consumer is gone; `None` if it was gone already.
+    /// Attach a consumer to every event whose topic starts with `prefix`; its
+    /// first event says the subscription is live. The returned receiver
+    /// resolves once the consumer is gone or dropped for falling behind.
     pub async fn subscribe_events(
         &self,
         prefix: String,
         events: Tx<hub_protocol::HubEvent>,
-    ) -> Option<tokio::sync::oneshot::Receiver<()>> {
+    ) -> tokio::sync::oneshot::Receiver<()> {
         let hello = hub_protocol::HubEvent {
             topic: hub_protocol::SUBSCRIBED_TOPIC.to_string(),
             payload: prefix.clone().into_bytes(),
         };
-        // Held across the hello, so no event can slip between it and joining.
-        let mut subscribers = self.events.lock().await;
-        events.send(hello).await.ok()?;
-        Some(subscribers.add(prefix, events))
+        self.events.lock().await.add(prefix, events, hello)
     }
 
     /// How many subscribers are attached (test/observability helper).

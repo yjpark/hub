@@ -141,7 +141,10 @@ async fn a_stalled_subscriber_holds_up_no_one() {
     let mut late = tokio::time::timeout(Duration::from_secs(5), subscribed(&addr, "kudo/"))
         .await
         .expect("a new subscriber is still answered");
-    publisher.publish(event("kudo/after", b"")).await.expect("publish");
+    publisher
+        .publish(event("kudo/after", b""))
+        .await
+        .expect("publish");
     let got = owned(
         tokio::time::timeout(Duration::from_secs(5), late.recv())
             .await

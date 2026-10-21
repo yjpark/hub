@@ -72,16 +72,23 @@ pub trait ConsumerApi {
         call: RoutedCall,
     ) -> Result<RoutedReply, RouteError>;
 
-    /// Publish one event; the hub delivers it to every subscriber whose prefix
-    /// matches its topic, never reading the payload, and answers how many it
-    /// reached. Live only: nobody listening means nobody receives it.
+    /// Publish one event; the hub queues it for every subscriber whose prefix
+    /// matches its topic, never reading the payload and never waiting on a
+    /// subscriber, and answers how many it was queued for. Live only: nobody
+    /// listening means nobody receives it. `hub/` topics and payloads over
+    /// [`crate::MAX_EVENT_PAYLOAD`] are refused.
     async fn publish(&self, event: HubEvent) -> Result<u32, HubError>;
 
-    /// Subscribe to every event whose topic starts with `prefix`; the hub
-    /// sends each into `events`, in the order it received them. A channel
-    /// streams within its call, so this call stays open while the subscription
-    /// lives: run it on a task of its own. The first event is
-    /// [`crate::SUBSCRIBED_TOPIC`] — from then on nothing published is missed.
+    /// Subscribe to every event whose topic starts with `prefix` — a plain
+    /// string prefix, so end it with `/` (`kudo/context/c1/`, not
+    /// `kudo/context/c1`, which would also match `c10`); an empty prefix is
+    /// everything. The hub sends each into `events`, in the order it received
+    /// them. A channel streams within its call, so this call stays open while
+    /// the subscription lives — run it on a task of its own; it holds one of
+    /// the connection's concurrent-call slots, and the same connection may
+    /// publish meanwhile. The first event is [`crate::SUBSCRIBED_TOPIC`]: from
+    /// then on nothing published is missed. A subscriber that falls too far
+    /// behind is dropped (its call returns); it re-reads what it follows.
     async fn subscribe_events(&self, prefix: String, events: Tx<HubEvent>) -> Result<(), HubError>;
 }
 
