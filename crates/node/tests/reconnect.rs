@@ -125,5 +125,9 @@ async fn node_re_registers_after_the_hub_drops_the_connection() {
         count >= 2,
         "node should have re-registered after a disconnect, saw {count} registration(s)"
     );
-    assert_eq!(*drops.lock().expect("drops mutex"), 2, "survived two blinks");
+    assert_eq!(
+        *drops.lock().expect("drops mutex"),
+        2,
+        "survived two blinks"
+    );
 }

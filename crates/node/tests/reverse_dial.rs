@@ -56,7 +56,9 @@ async fn node_reverse_dials_registers_and_answers_ping() {
                         }));
                         Ok(())
                     }
-                    _ => Err(vox::LaneRejection::new(vox::LaneRejectReason::UnknownService)),
+                    _ => Err(vox::LaneRejection::new(
+                        vox::LaneRejectReason::UnknownService,
+                    )),
                 }
             },
         )
@@ -78,7 +80,11 @@ async fn node_reverse_dials_registers_and_answers_ping() {
 
     // The registration reached the hub, carrying the node's identity.
     assert_eq!(
-        seen.lock().expect("mutex").as_ref().expect("registered").node,
+        seen.lock()
+            .expect("mutex")
+            .as_ref()
+            .expect("registered")
+            .node,
         NodeId("alpha".to_string()),
     );
 

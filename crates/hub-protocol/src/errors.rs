@@ -54,7 +54,10 @@ mod tests {
 
     #[test]
     fn hub_error_round_trips() {
-        for v in [HubError::UnknownNode, HubError::Rejected("busy".to_string())] {
+        for v in [
+            HubError::UnknownNode,
+            HubError::Rejected("busy".to_string()),
+        ] {
             let json = facet_json::to_string(&v).unwrap();
             let back: HubError = facet_json::from_str(&json).unwrap();
             assert_eq!(v, back);

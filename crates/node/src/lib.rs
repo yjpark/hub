@@ -19,8 +19,8 @@ pub mod reconnect;
 pub mod tcp;
 
 pub use config::{ConfigError, HubEndpoint, NodeConfig};
-pub use dial::{DialError, serve_and_register, serve_and_register_with};
-pub use reconnect::{Backoff, DialOutcome};
 pub use connector::{Connector, Connectors};
 pub use daemon::NodeDaemon;
+pub use dial::{DialError, serve_and_register, serve_and_register_with};
 pub use files::FilesConnector;
+pub use reconnect::{Backoff, DialOutcome};

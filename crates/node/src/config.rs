@@ -31,7 +31,10 @@ impl fmt::Display for ConfigError {
                 f.write_str("no hub configured — a node requires a hub to dial (§2.4)")
             }
             ConfigError::UnsupportedScheme(scheme) => {
-                write!(f, "unsupported hub address scheme `{scheme}` (expected tcp)")
+                write!(
+                    f,
+                    "unsupported hub address scheme `{scheme}` (expected tcp)"
+                )
             }
         }
     }

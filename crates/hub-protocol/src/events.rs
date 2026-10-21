@@ -4,6 +4,11 @@
 
 use facet::Facet;
 
+/// The topic of the first event every subscription receives: the hub's word
+/// that the subscription is live, so nothing published after it can be missed.
+/// Its payload is the prefix subscribed to.
+pub const SUBSCRIBED_TOPIC: &str = "hub/subscribed";
+
 /// One event: a topic subscribers match by prefix, and bytes only the
 /// publisher and its readers understand.
 #[derive(Facet, Debug, Clone, PartialEq, Eq)]

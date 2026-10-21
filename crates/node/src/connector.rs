@@ -125,7 +125,9 @@ mod tests {
 
     #[test]
     fn a_node_with_no_connectors_refuses_everything() {
-        let err = Connectors::new().dispatch(&call("echo-0", "echo")).unwrap_err();
+        let err = Connectors::new()
+            .dispatch(&call("echo-0", "echo"))
+            .unwrap_err();
         assert_eq!(err, NodeError::UnknownConnector);
     }
 

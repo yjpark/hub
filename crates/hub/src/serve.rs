@@ -10,7 +10,7 @@
 
 use std::sync::Arc;
 
-use hub_protocol::service::{NodeServiceClient, NodeIngressDispatcher, ConsumerApiDispatcher};
+use hub_protocol::service::{ConsumerApiDispatcher, NodeIngressDispatcher, NodeServiceClient};
 use hub_protocol::{
     ConsumerApi, HubError, LinkSelector, NodeIngress, NodeLink, Registration, RouteError,
     RoutedCall, RoutedReply, TopologyEvent, TopologySnapshot,
@@ -92,8 +92,7 @@ impl ConsumerApi for ConsumerApiHandler {
     }
 
     async fn publish(&self, event: hub_protocol::HubEvent) -> Result<u32, HubError> {
-        let _ = event;
-        Ok(0)
+        Ok(self.hub.publish(event).await)
     }
 
     async fn subscribe_events(
@@ -101,7 +100,11 @@ impl ConsumerApi for ConsumerApiHandler {
         prefix: String,
         events: Tx<hub_protocol::HubEvent>,
     ) -> Result<(), HubError> {
-        let _ = (prefix, events);
+        // The channel streams within this call: hold the call open until the
+        // subscriber is gone.
+        if let Some(gone) = self.hub.subscribe_events(prefix, events).await {
+            let _ = gone.await;
+        }
         Ok(())
     }
 
@@ -111,11 +114,7 @@ impl ConsumerApi for ConsumerApiHandler {
         call: RoutedCall,
     ) -> Result<RoutedReply, RouteError> {
         // Which link answers: requested, else stable, else an error (§2.5).
-        let client = self
-            .hub
-            .resolve(&target)
-            .await
-            .map_err(RouteError::Hub)?;
+        let client = self.hub.resolve(&target).await.map_err(RouteError::Hub)?;
 
         // Delivered — so a failure here is the node's, not the hub's. vox carries
         // the callee's domain error in `VoxError::User`, so the node's structured
@@ -169,7 +168,9 @@ where
     let consumer_handler = ConsumerApiHandler { hub: hub.clone() };
 
     let acceptor = vox::lane_acceptor_fn(
-        move |request: &vox::LaneRequest, lane: vox::PendingLane| -> Result<(), vox::LaneRejection> {
+        move |request: &vox::LaneRequest,
+              lane: vox::PendingLane|
+              -> Result<(), vox::LaneRejection> {
             match request.service() {
                 "NodeIngress" => {
                     lane.handle_with(NodeIngressDispatcher::new(node_handler.clone()));
@@ -179,7 +180,9 @@ where
                     lane.handle_with(ConsumerApiDispatcher::new(consumer_handler.clone()));
                     Ok(())
                 }
-                _ => Err(vox::LaneRejection::new(vox::LaneRejectReason::UnknownService)),
+                _ => Err(vox::LaneRejection::new(
+                    vox::LaneRejectReason::UnknownService,
+                )),
             }
         },
     );

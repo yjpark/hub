@@ -4,9 +4,9 @@
 
 use std::time::Duration;
 
+use hub::{ServedHub, serve_connection};
 use hub_protocol::service::ConsumerApiClient;
 use hub_protocol::{Connector, ConnectorKind, LinkLabel, LinkSelector, NodeId, RoutedCall};
-use hub::{ServedHub, serve_connection};
 
 fn node_config(link: LinkLabel) -> node::NodeConfig {
     node::NodeConfig::new(

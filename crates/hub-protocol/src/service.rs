@@ -18,9 +18,9 @@
 
 use vox::Tx;
 
-use crate::events::HubEvent;
 use crate::discovery::{TopologyEvent, TopologySnapshot};
 use crate::errors::{HubError, NodeError, RouteError};
+use crate::events::HubEvent;
 use crate::identity::NodeId;
 use crate::registration::Registration;
 use crate::routing::{RoutedCall, RoutedReply};
@@ -78,9 +78,11 @@ pub trait ConsumerApi {
     async fn publish(&self, event: HubEvent) -> Result<u32, HubError>;
 
     /// Subscribe to every event whose topic starts with `prefix`; the hub
-    /// sends each into `events`, in the order it received them.
-    async fn subscribe_events(&self, prefix: String, events: Tx<HubEvent>)
-    -> Result<(), HubError>;
+    /// sends each into `events`, in the order it received them. A channel
+    /// streams within its call, so this call stays open while the subscription
+    /// lives: run it on a task of its own. The first event is
+    /// [`crate::SUBSCRIBED_TOPIC`] — from then on nothing published is missed.
+    async fn subscribe_events(&self, prefix: String, events: Tx<HubEvent>) -> Result<(), HubError>;
 }
 
 /// Dialed by the hub toward a node; the node answers here (§2.4).

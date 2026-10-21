@@ -25,13 +25,14 @@ fn start_hub(addr: &str) -> Child {
 
 async fn registered_nodes(addr: &str) -> Option<usize> {
     let socket = tokio::net::TcpStream::connect(addr).await.ok()?;
-    let consumer: ConsumerApiClient = vox::initiator_on(vox::transport::tcp::StreamLink::tcp(socket))
-        .establish_connection()
-        .await
-        .ok()?
-        .open_lane()
-        .await
-        .ok()?;
+    let consumer: ConsumerApiClient =
+        vox::initiator_on(vox::transport::tcp::StreamLink::tcp(socket))
+            .establish_connection()
+            .await
+            .ok()?
+            .open_lane()
+            .await
+            .ok()?;
     Some(consumer.topology().await.ok()?.nodes.len())
 }
 

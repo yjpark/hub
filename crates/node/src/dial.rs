@@ -92,12 +92,10 @@ where
     if !connectors.is_empty() {
         registration.connectors = connectors.descriptors();
     }
-    hub.register(registration)
-        .await
-        .map_err(|e| match e {
-            vox::VoxError::User(hub_error) => DialError::Rejected(*hub_error),
-            other => DialError::RegisterTransport(format!("{other:?}")),
-        })?;
+    hub.register(registration).await.map_err(|e| match e {
+        vox::VoxError::User(hub_error) => DialError::Rejected(*hub_error),
+        other => DialError::RegisterTransport(format!("{other:?}")),
+    })?;
 
     Ok(connection)
 }

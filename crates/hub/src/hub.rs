@@ -10,6 +10,7 @@ use tokio::sync::Mutex;
 use vox::Tx;
 
 use crate::discovery::Subscribers;
+use crate::events::EventSubscribers;
 use crate::registry::Registry;
 
 /// Shared hub state, cloneable across connection tasks.
@@ -18,6 +19,9 @@ use crate::registry::Registry;
 /// in production), which keeps this testable without a transport.
 pub struct Hub<T> {
     inner: Arc<Mutex<Inner<T>>>,
+    /// Event subscribers, under a lock of their own: a slow subscriber must not
+    /// hold up registration or routing.
+    events: Arc<Mutex<EventSubscribers>>,
 }
 
 struct Inner<T> {
@@ -29,6 +33,7 @@ impl<T> Clone for Hub<T> {
     fn clone(&self) -> Self {
         Self {
             inner: Arc::clone(&self.inner),
+            events: Arc::clone(&self.events),
         }
     }
 }
@@ -47,6 +52,7 @@ impl<T: Clone> Hub<T> {
                 registry: Registry::new(),
                 subscribers: Subscribers::new(),
             })),
+            events: Arc::new(Mutex::new(EventSubscribers::new())),
         }
     }
 
@@ -79,7 +85,34 @@ impl<T: Clone> Hub<T> {
     /// Resolve a routing target to the handle that should answer it (§2.5).
     pub async fn resolve(&self, target: &LinkSelector) -> Result<T, HubError> {
         let inner = self.inner.lock().await;
-        inner.registry.resolve(target).map(|(_, entry)| entry.handle.clone())
+        inner
+            .registry
+            .resolve(target)
+            .map(|(_, entry)| entry.handle.clone())
+    }
+
+    /// Publish an event to every subscriber whose prefix matches its topic;
+    /// how many it reached.
+    pub async fn publish(&self, event: hub_protocol::HubEvent) -> u32 {
+        self.events.lock().await.publish(event).await
+    }
+
+    /// Attach a consumer to every event whose topic starts with `prefix`,
+    /// after telling it the subscription is live. The returned receiver
+    /// resolves once the consumer is gone; `None` if it was gone already.
+    pub async fn subscribe_events(
+        &self,
+        prefix: String,
+        events: Tx<hub_protocol::HubEvent>,
+    ) -> Option<tokio::sync::oneshot::Receiver<()>> {
+        let hello = hub_protocol::HubEvent {
+            topic: hub_protocol::SUBSCRIBED_TOPIC.to_string(),
+            payload: prefix.clone().into_bytes(),
+        };
+        // Held across the hello, so no event can slip between it and joining.
+        let mut subscribers = self.events.lock().await;
+        events.send(hello).await.ok()?;
+        Some(subscribers.add(prefix, events))
     }
 
     /// How many subscribers are attached (test/observability helper).

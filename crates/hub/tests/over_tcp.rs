@@ -81,7 +81,10 @@ async fn the_mesh_registers_discovers_and_routes_over_tcp() {
         }
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
-    assert!(seen, "the node should register over TCP and be discoverable");
+    assert!(
+        seen,
+        "the node should register over TCP and be discoverable"
+    );
 
     // ── a routed call reaches it (the stub refuses, which proves delivery) ───
     let err = consumer
