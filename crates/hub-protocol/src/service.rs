@@ -90,6 +90,21 @@ pub trait ConsumerApi {
     /// then on nothing published is missed. A subscriber that falls too far
     /// behind is dropped (its call returns); it re-reads what it follows.
     async fn subscribe_events(&self, prefix: String, events: Tx<HubEvent>) -> Result<(), HubError>;
+
+    /// This hub's own nodes, with no peer's — what a peer hub reads, so two
+    /// hubs asking each other never recurse.
+    // implements: a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45@a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45
+    async fn local_topology(&self) -> TopologySnapshot;
+
+    /// As [`ConsumerApi::subscribe_events`], but only events published to
+    /// this hub itself, never one it carries from a peer — what a peer hub
+    /// follows, so an event crosses one hop and never echoes back.
+    // implements: a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45@a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45
+    async fn subscribe_local_events(
+        &self,
+        prefix: String,
+        events: Tx<HubEvent>,
+    ) -> Result<(), HubError>;
 }
 
 /// Dialed by the hub toward a node; the node answers here (§2.4).

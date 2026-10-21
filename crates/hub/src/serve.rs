@@ -121,6 +121,20 @@ impl ConsumerApi for ConsumerApiHandler {
         Ok(())
     }
 
+    async fn local_topology(&self) -> TopologySnapshot {
+        self.hub.snapshot().await
+    }
+
+    async fn subscribe_local_events(
+        &self,
+        prefix: String,
+        events: Tx<hub_protocol::HubEvent>,
+    ) -> Result<(), HubError> {
+        let gone = self.hub.subscribe_events(prefix, events).await;
+        let _ = gone.await;
+        Ok(())
+    }
+
     async fn route(
         &self,
         target: LinkSelector,

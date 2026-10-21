@@ -24,7 +24,7 @@ pub use connector::{Connector, ConnectorKind};
 pub use discovery::{LinkInfo, NodeInfo, TopologyEvent, TopologySnapshot};
 pub use errors::{HubError, NodeError, RouteError};
 pub use events::{HubEvent, MAX_EVENT_PAYLOAD, SUBSCRIBED_TOPIC};
-pub use identity::{LinkLabel, NodeId, NodeLink};
+pub use identity::{LinkLabel, NodeId, NodeLink, PEER_SEPARATOR};
 pub use registration::Registration;
 pub use routing::{RoutedCall, RoutedReply};
 pub use service::{ConsumerApi, NodeIngress, NodeService, Pong};

@@ -17,6 +17,24 @@ use facet::Facet;
 #[derive(Facet, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NodeId(pub String);
 
+/// Between a peer hub's name and one of its nodes: `edger::yolo`. Reserved —
+/// a node may not register a name containing it.
+// implements: a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45@a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45
+pub const PEER_SEPARATOR: &str = "::";
+
+impl NodeId {
+    /// A peer hub's node, as this hub's consumers see it (stub).
+    pub fn qualified(hub: &str, node: &NodeId) -> Self {
+        let _ = hub;
+        node.clone()
+    }
+
+    /// The peer hub and the node within it, for a qualified id (stub).
+    pub fn split_peer(&self) -> Option<(&str, NodeId)> {
+        None
+    }
+}
+
 /// Which link of a node a request concerns (§2.5).
 ///
 /// `stable` is distinguished: it is the routing default and the fallback when a

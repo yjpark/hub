@@ -11,6 +11,7 @@ use vox::Tx;
 
 use crate::discovery::Subscribers;
 use crate::events::EventSubscribers;
+use crate::peers::Peers;
 use crate::registry::Registry;
 
 /// Shared hub state, cloneable across connection tasks.
@@ -22,6 +23,8 @@ pub struct Hub<T> {
     /// Event subscribers, under a lock of their own: a slow subscriber must not
     /// hold up registration or routing.
     events: Arc<Mutex<EventSubscribers>>,
+    /// This hub's name and its peer hubs.
+    peers: Peers,
 }
 
 struct Inner<T> {
@@ -34,6 +37,7 @@ impl<T> Clone for Hub<T> {
         Self {
             inner: Arc::clone(&self.inner),
             events: Arc::clone(&self.events),
+            peers: self.peers.clone(),
         }
     }
 }
@@ -53,7 +57,19 @@ impl<T: Clone> Hub<T> {
                 subscribers: Subscribers::new(),
             })),
             events: Arc::new(Mutex::new(EventSubscribers::new())),
+            peers: Peers::default(),
         }
+    }
+
+    /// This hub, named and peered by `peers`.
+    pub fn with_peers(mut self, peers: Peers) -> Self {
+        self.peers = peers;
+        self
+    }
+
+    /// This hub's name and its peers.
+    pub fn peers(&self) -> &Peers {
+        &self.peers
     }
 
     /// Register a link and broadcast the topology change it implies (§2.1, §2.6).

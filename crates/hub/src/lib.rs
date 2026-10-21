@@ -13,6 +13,7 @@ pub mod discovery;
 pub mod events;
 #[allow(clippy::module_inception)]
 pub mod hub;
+pub mod peers;
 pub mod registry;
 pub mod serve;
 pub mod tcp;
@@ -20,6 +21,7 @@ pub mod tcp;
 pub use discovery::Subscribers;
 pub use events::EventSubscribers;
 pub use hub::Hub;
+pub use peers::{Dialer, Peers, parse_peers, tcp_dialer};
 pub use registry::{LinkEntry, Registry};
 pub use serve::{ServedHub, serve_connection};
 pub use tcp::{HubListener, serve_tcp};
