@@ -9,6 +9,9 @@ use facet::Facet;
 /// Its payload is the prefix subscribed to.
 pub const SUBSCRIBED_TOPIC: &str = "hub/subscribed";
 
+/// The largest payload one event may carry.
+pub const MAX_EVENT_PAYLOAD: usize = 64 * 1024;
+
 /// One event: a topic subscribers match by prefix, and bytes only the
 /// publisher and its readers understand.
 #[derive(Facet, Debug, Clone, PartialEq, Eq)]

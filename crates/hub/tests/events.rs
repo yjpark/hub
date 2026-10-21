@@ -114,3 +114,73 @@ async fn an_event_nobody_listens_for_reaches_no_one() {
         .expect("publish");
     assert_eq!(reached, 0);
 }
+
+/// A subscriber that stops reading cannot hold up anyone else: publishers keep
+/// publishing, and a new subscriber is still answered. The stalled one is
+/// dropped once it falls too far behind (it re-reads the store).
+#[tokio::test(flavor = "multi_thread")]
+async fn a_stalled_subscriber_holds_up_no_one() {
+    let listener = HubListener::bind("127.0.0.1:0").await.expect("bind");
+    let addr = listener.local_addr().to_string();
+    tokio::spawn(async move { listener.serve(ServedHub::new()).await });
+
+    // Subscribed, live, and then never read again.
+    let _stalled = subscribed(&addr, "kudo/").await;
+    let publisher = consumer_for(&addr).await;
+    let all = async {
+        for n in 0..2000u32 {
+            publisher
+                .publish(event("kudo/context/c1/x", &n.to_be_bytes()))
+                .await
+                .expect("publish");
+        }
+    };
+    tokio::time::timeout(Duration::from_secs(20), all)
+        .await
+        .expect("publishing never waits on a subscriber that stopped reading");
+    let mut late = tokio::time::timeout(Duration::from_secs(5), subscribed(&addr, "kudo/"))
+        .await
+        .expect("a new subscriber is still answered");
+    publisher.publish(event("kudo/after", b"")).await.expect("publish");
+    let got = owned(
+        tokio::time::timeout(Duration::from_secs(5), late.recv())
+            .await
+            .expect("delivered")
+            .expect("a value")
+            .expect("an event"),
+    );
+    assert_eq!(got.topic, "kudo/after");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn every_matching_subscriber_is_counted() {
+    let listener = HubListener::bind("127.0.0.1:0").await.expect("bind");
+    let addr = listener.local_addr().to_string();
+    tokio::spawn(async move { listener.serve(ServedHub::new()).await });
+    let _a = subscribed(&addr, "kudo/").await;
+    let _b = subscribed(&addr, "kudo/context/c1/").await;
+    let _c = subscribed(&addr, "kudo/context/c10/").await;
+    let publisher = consumer_for(&addr).await;
+    let reached = publisher
+        .publish(event("kudo/context/c1/x", b""))
+        .await
+        .expect("publish");
+    assert_eq!(reached, 2, "kudo/ and kudo/context/c1/, not c10");
+}
+
+/// `hub/` topics are the hub's own; and a payload has a ceiling.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_hubs_topics_and_oversized_payloads_are_refused() {
+    let listener = HubListener::bind("127.0.0.1:0").await.expect("bind");
+    let addr = listener.local_addr().to_string();
+    tokio::spawn(async move { listener.serve(ServedHub::new()).await });
+    let publisher = consumer_for(&addr).await;
+    assert!(
+        publisher
+            .publish(event(hub_protocol::SUBSCRIBED_TOPIC, b"kudo/"))
+            .await
+            .is_err()
+    );
+    let big = vec![0u8; hub_protocol::MAX_EVENT_PAYLOAD + 1];
+    assert!(publisher.publish(event("kudo/x", &big)).await.is_err());
+}
