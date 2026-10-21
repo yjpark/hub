@@ -13,6 +13,7 @@
 pub mod connector;
 pub mod discovery;
 pub mod errors;
+pub mod events;
 pub mod identity;
 pub mod registration;
 pub mod routing;
@@ -22,6 +23,7 @@ pub mod targeting;
 pub use connector::{Connector, ConnectorKind};
 pub use discovery::{LinkInfo, NodeInfo, TopologyEvent, TopologySnapshot};
 pub use errors::{HubError, NodeError, RouteError};
+pub use events::HubEvent;
 pub use identity::{LinkLabel, NodeId, NodeLink};
 pub use registration::Registration;
 pub use routing::{RoutedCall, RoutedReply};

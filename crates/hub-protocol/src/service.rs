@@ -18,6 +18,7 @@
 
 use vox::Tx;
 
+use crate::events::HubEvent;
 use crate::discovery::{TopologyEvent, TopologySnapshot};
 use crate::errors::{HubError, NodeError, RouteError};
 use crate::identity::NodeId;
@@ -70,6 +71,16 @@ pub trait ConsumerApi {
         target: LinkSelector,
         call: RoutedCall,
     ) -> Result<RoutedReply, RouteError>;
+
+    /// Publish one event; the hub delivers it to every subscriber whose prefix
+    /// matches its topic, never reading the payload, and answers how many it
+    /// reached. Live only: nobody listening means nobody receives it.
+    async fn publish(&self, event: HubEvent) -> Result<u32, HubError>;
+
+    /// Subscribe to every event whose topic starts with `prefix`; the hub
+    /// sends each into `events`, in the order it received them.
+    async fn subscribe_events(&self, prefix: String, events: Tx<HubEvent>)
+    -> Result<(), HubError>;
 }
 
 /// Dialed by the hub toward a node; the node answers here (§2.4).

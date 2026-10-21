@@ -91,6 +91,20 @@ impl ConsumerApi for ConsumerApiHandler {
         Ok(())
     }
 
+    async fn publish(&self, event: hub_protocol::HubEvent) -> Result<u32, HubError> {
+        let _ = event;
+        Ok(0)
+    }
+
+    async fn subscribe_events(
+        &self,
+        prefix: String,
+        events: Tx<hub_protocol::HubEvent>,
+    ) -> Result<(), HubError> {
+        let _ = (prefix, events);
+        Ok(())
+    }
+
     async fn route(
         &self,
         target: LinkSelector,
