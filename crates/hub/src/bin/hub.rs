@@ -1,6 +1,8 @@
 //! The hub daemon: bind, accept, serve — until killed.
 //!
-//! Address from the first argument or `HUB_ADDR`, defaulting to 127.0.0.1:15400.
+//! Address from the first argument or `HUB_ADDR`, defaulting to 127.0.0.1:15400;
+//! several, comma-separated, serve the same hub on each (a bridge for local
+//! nodes, a private network for peer hubs).
 //! Peer hubs: `HUB_NAME` (this hub's name, defaulting to the hostname) and
 //! `HUB_PEERS` (`name=addr,…`); without `HUB_PEERS` the hub stands alone.
 
@@ -43,7 +45,19 @@ async fn main() -> std::io::Result<()> {
         hub = hub.with_peers(set);
     }
 
-    let listener = hub::HubListener::bind(addr.as_str()).await?;
-    println!("hub listening on {}", listener.local_addr());
-    listener.serve(hub).await
+    let mut serving = tokio::task::JoinSet::new();
+    for addr in addr.split(',').map(str::trim).filter(|a| !a.is_empty()) {
+        let listener = hub::HubListener::bind(addr).await?;
+        println!("hub listening on {}", listener.local_addr());
+        serving.spawn(listener.serve(hub.clone()));
+    }
+    // Any listener ending ends the hub (its service restarts it).
+    match serving.join_next().await {
+        Some(Ok(result)) => result,
+        Some(Err(e)) => Err(std::io::Error::other(e)),
+        None => Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "no address to listen on",
+        )),
+    }
 }
