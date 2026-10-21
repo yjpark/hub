@@ -3,10 +3,11 @@
 //!
 //! A peer is dialled as an ordinary consumer of the other hub: its own nodes
 //! come from `local_topology`, calls go through `route` with the name
-//! stripped, and events through `subscribe_local_events` — the two `local`
-//! methods are what keep everything one hop.
+//! stripped (and refused if still qualified), and events through one
+//! `subscribe_local_events` per peer, held while anyone here subscribes. The
+//! two `local` methods are what keep everything one hop.
 //!
-//! implements: a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45@a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45
+//! implements: a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45@6a55d418a00ed4bd5b3644ffa295bc579963314652f4b658ef1e40e185002757
 
 use std::future::Future;
 use std::pin::Pin;
@@ -15,7 +16,7 @@ use std::time::Duration;
 
 use hub_protocol::service::ConsumerApiClient;
 use hub_protocol::{HubEvent, NodeInfo, PEER_SEPARATOR, SUBSCRIBED_TOPIC, TopologySnapshot};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 use vox::ConnectionHandle;
 
 /// Opens a connection to one peer hub.
@@ -27,8 +28,10 @@ pub type Dialer = Arc<
 
 /// How long a peer's topology may take before its nodes are left out.
 const TOPOLOGY_WAIT: Duration = Duration::from_secs(2);
-/// The longest wait between redials of a peer that is down.
+/// The longest wait between redials (or resubscribes) of a peer that is down.
 const REDIAL_MAX: Duration = Duration::from_secs(30);
+/// A peer that stops answering pings is dropped within about this twice.
+const KEEPALIVE: Duration = Duration::from_secs(10);
 
 struct Peer {
     name: String,
@@ -36,10 +39,36 @@ struct Peer {
 }
 
 /// This hub's name and its peers, each redialled forever.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Peers {
     name: Option<String>,
     peers: Arc<Mutex<Vec<Peer>>>,
+    /// How many subscribers here follow events: peers' events are carried
+    /// only while this is above zero.
+    watchers: Arc<watch::Sender<usize>>,
+    /// Where carried events go: the hub's fan-out, set by the hub.
+    sink: Arc<Mutex<Option<mpsc::Sender<HubEvent>>>>,
+}
+
+impl Default for Peers {
+    fn default() -> Self {
+        Self {
+            name: None,
+            peers: Arc::default(),
+            watchers: Arc::new(watch::channel(0).0),
+            sink: Arc::default(),
+        }
+    }
+}
+
+/// Held while a subscriber here follows events; dropping it lets the peers'
+/// subscriptions go once nobody follows.
+pub struct Watching(Arc<watch::Sender<usize>>);
+
+impl Drop for Watching {
+    fn drop(&mut self) {
+        self.0.send_modify(|n| *n = n.saturating_sub(1));
+    }
 }
 
 impl Peers {
@@ -47,7 +76,7 @@ impl Peers {
     pub fn new(name: impl Into<String>) -> Self {
         Self {
             name: Some(name.into()),
-            peers: Arc::default(),
+            ..Self::default()
         }
     }
 
@@ -72,33 +101,77 @@ impl Peers {
         });
     }
 
+    /// Send carried events into `sink` (the hub's fan-out).
+    pub(crate) fn set_sink(&self, sink: mpsc::Sender<HubEvent>) {
+        *self
+            .sink
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(sink);
+    }
+
+    fn sink(&self) -> Option<mpsc::Sender<HubEvent>> {
+        self.sink
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+    }
+
+    /// Count a subscriber here as following events while the guard lives.
+    pub fn watch(&self) -> Watching {
+        self.watchers.send_modify(|n| *n += 1);
+        Watching(Arc::clone(&self.watchers))
+    }
+
     /// Dial `peer` with `dialer`, and redial whenever it drops, backing off
-    /// up to thirty seconds while it is down. Needs a tokio runtime.
+    /// up to thirty seconds while it is down; follow its events while anyone
+    /// here does. Refuses this hub's own name, a name already added, and a
+    /// name holding the peer separator. Needs a tokio runtime.
     pub fn add(&self, peer: impl Into<String>, dialer: Dialer) -> Result<(), String> {
         let peer = peer.into();
-        self.with(|peers| {
+        if Some(peer.as_str()) == self.name() {
+            return Err(format!("peer {peer:?} is this hub's own name"));
+        }
+        if peer.is_empty() || peer.contains(PEER_SEPARATOR) {
+            return Err(format!("peer {peer:?}: a name without {PEER_SEPARATOR}"));
+        }
+        let added = self.with(|peers| {
+            if peers.iter().any(|p| p.name == peer) {
+                return false;
+            }
             peers.push(Peer {
                 name: peer.clone(),
                 client: None,
-            })
+            });
+            true
         });
-        let peers = self.clone();
+        if !added {
+            return Err(format!("peer {peer:?} is already added"));
+        }
+        let (peers, name) = (self.clone(), peer.clone());
         tokio::spawn(async move {
             let mut wait = Duration::from_secs(1);
             loop {
                 if let Ok(handle) = dialer().await {
                     let lane: Result<ConsumerApiClient, _> = handle.open_lane().await;
-                    if let Ok(client) = lane {
-                        peers.set(&peer, Some(client));
-                        wait = Duration::from_secs(1);
-                        handle.closed().await;
-                        peers.set(&peer, None);
+                    match lane {
+                        Ok(client) => {
+                            peers.set(&name, Some(client));
+                            wait = Duration::from_secs(1);
+                            handle.closed().await;
+                            peers.set(&name, None);
+                        }
+                        // Dropping a handle does not close its connection.
+                        Err(_) => {
+                            let _ = handle.shutdown();
+                        }
                     }
                 }
                 tokio::time::sleep(wait).await;
                 wait = (wait * 2).min(REDIAL_MAX);
             }
         });
+        let peers = self.clone();
+        tokio::spawn(async move { peers.follow(peer).await });
         Ok(())
     }
 
@@ -117,76 +190,89 @@ impl Peers {
         })
     }
 
-    /// Every reachable peer's own nodes, qualified by the peer's name; a peer
-    /// that is down or slower than two seconds is left out.
+    /// Every reachable peer's own nodes, qualified by the peer's name, asked
+    /// of all peers at once; one down or slower than two seconds is left out.
     pub async fn nodes(&self) -> Vec<NodeInfo> {
-        let mut nodes = Vec::new();
+        let mut asks = tokio::task::JoinSet::new();
         for peer in self.names() {
             let Some(client) = self.client(&peer).await else {
                 continue;
             };
-            if let Ok(Ok(TopologySnapshot { nodes: theirs })) =
-                tokio::time::timeout(TOPOLOGY_WAIT, client.local_topology()).await
-            {
-                nodes.extend(theirs.into_iter().map(|n| NodeInfo {
-                    node: hub_protocol::NodeId::qualified(&peer, &n.node),
-                    links: n.links,
-                }));
-            }
+            asks.spawn(async move {
+                match tokio::time::timeout(TOPOLOGY_WAIT, client.local_topology()).await {
+                    Ok(Ok(TopologySnapshot { nodes })) => nodes
+                        .into_iter()
+                        .map(|n| NodeInfo {
+                            node: hub_protocol::NodeId::qualified(&peer, &n.node),
+                            links: n.links,
+                        })
+                        .collect(),
+                    _ => Vec::new(),
+                }
+            });
         }
+        let mut nodes = Vec::new();
+        while let Some(Ok(theirs)) = asks.join_next().await {
+            nodes.extend(theirs);
+        }
+        nodes.sort_by(|a, b| a.node.cmp(&b.node));
         nodes
     }
 
-    /// Carry `peer`'s own events under `prefix` into one subscriber's
-    /// `queue` while it lives, resubscribing whenever the peer drops. Events
-    /// enter that queue only — never this hub's publish — so they cross one
-    /// hop and are never sent on.
-    pub async fn follow(&self, peer: String, prefix: String, queue: mpsc::Sender<HubEvent>) {
+    /// Carry `peer`'s own events into the hub's fan-out while anyone here
+    /// follows events: one subscription per peer, whatever the number of
+    /// subscribers, resubscribed (with backoff) whenever it ends.
+    async fn follow(&self, peer: String) {
+        let mut watching = self.watchers.subscribe();
+        let mut wait = Duration::from_secs(1);
         loop {
-            if let Some(client) = self.client(&peer).await {
+            if !wait_until(&mut watching, |n| n > 0).await {
+                return;
+            }
+            let mut live = false;
+            if let (Some(client), Some(sink)) = (self.client(&peer).await, self.sink()) {
                 let (tx, mut rx) = vox::channel::<HubEvent>();
-                let call = tokio::spawn({
-                    let prefix = prefix.clone();
-                    async move {
-                        let _ = client.subscribe_local_events(prefix, tx).await;
-                    }
-                });
+                let call = client.subscribe_local_events(String::new(), tx);
+                tokio::pin!(call);
                 loop {
                     tokio::select! {
+                        _ = &mut call => break,
                         got = rx.recv() => match got {
                             Ok(Some(event)) => {
                                 let mut owned = None;
                                 let _ = event.map(|e| owned = Some(e));
                                 let Some(event) = owned else { continue };
                                 if event.topic == SUBSCRIBED_TOPIC {
+                                    live = true;
                                     continue;
                                 }
-                                if let Err(mpsc::error::TrySendError::Closed(_)) =
-                                    queue.try_send(event)
-                                {
-                                    call.abort();
+                                if sink.send(event).await.is_err() {
                                     return;
                                 }
                             }
                             _ => break,
                         },
-                        _ = queue.closed() => {
-                            call.abort();
-                            return;
-                        }
+                        _ = wait_until(&mut watching, |n| n == 0) => break,
                     }
                 }
-                call.abort();
             }
-            tokio::select! {
-                _ = tokio::time::sleep(Duration::from_secs(1)) => {}
-                _ = queue.closed() => return,
+            if live {
+                wait = Duration::from_secs(1);
+            } else {
+                tokio::time::sleep(wait).await;
+                wait = (wait * 2).min(REDIAL_MAX);
             }
         }
     }
 }
 
-/// A dialer for a peer hub at `addr` over TCP (three seconds to connect).
+/// Until the watcher count satisfies `want`; false once its sender is gone.
+async fn wait_until(watching: &mut watch::Receiver<usize>, want: impl Fn(usize) -> bool) -> bool {
+    watching.wait_for(|n| want(*n)).await.is_ok()
+}
+
+/// A dialer for a peer hub at `addr` over TCP: three seconds to connect, and
+/// a keepalive so a peer that vanishes (power, network) is noticed.
 pub fn tcp_dialer(addr: String) -> Dialer {
     Arc::new(move || {
         let addr = addr.clone();
@@ -199,6 +285,10 @@ pub fn tcp_dialer(addr: String) -> Dialer {
             .map_err(|_| format!("{addr} did not answer"))?
             .map_err(|e| format!("{addr}: {e}"))?;
             vox::initiator_on(vox::transport::tcp::StreamLink::tcp(socket))
+                .keepalive(vox::ConnectionKeepaliveConfig {
+                    ping_interval: KEEPALIVE,
+                    pong_timeout: KEEPALIVE,
+                })
                 .establish_connection()
                 .await
                 .map_err(|e| format!("{addr}: {e:?}"))
@@ -206,22 +296,24 @@ pub fn tcp_dialer(addr: String) -> Dialer {
     })
 }
 
-/// `HUB_PEERS`: `name=addr,…`. A name may not hold the peer separator.
+/// `HUB_PEERS`: `name=addr,…`. A name may not hold the peer separator, nor
+/// appear twice.
 pub fn parse_peers(spec: &str) -> Result<Vec<(String, String)>, String> {
-    spec.split(',')
-        .map(str::trim)
-        .filter(|entry| !entry.is_empty())
-        .map(|entry| {
-            let (name, addr) = entry
-                .split_once('=')
-                .ok_or_else(|| format!("peer {entry:?}: want name=addr"))?;
-            let (name, addr) = (name.trim(), addr.trim());
-            if name.is_empty() || addr.is_empty() || name.contains(PEER_SEPARATOR) {
-                return Err(format!(
-                    "peer {entry:?}: want name=addr, a name without {PEER_SEPARATOR}"
-                ));
-            }
-            Ok((name.to_string(), addr.to_string()))
-        })
-        .collect()
+    let mut peers: Vec<(String, String)> = Vec::new();
+    for entry in spec.split(',').map(str::trim).filter(|e| !e.is_empty()) {
+        let (name, addr) = entry
+            .split_once('=')
+            .ok_or_else(|| format!("peer {entry:?}: want name=addr"))?;
+        let (name, addr) = (name.trim(), addr.trim());
+        if name.is_empty() || addr.is_empty() || name.contains(PEER_SEPARATOR) {
+            return Err(format!(
+                "peer {entry:?}: want name=addr, a name without {PEER_SEPARATOR}"
+            ));
+        }
+        if peers.iter().any(|(n, _)| n == name) {
+            return Err(format!("peer {name:?} is named twice"));
+        }
+        peers.push((name.to_string(), addr.to_string()));
+    }
+    Ok(peers)
 }

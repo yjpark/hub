@@ -19,7 +19,7 @@ pub struct NodeId(pub String);
 
 /// Between a peer hub's name and one of its nodes: `edger::yolo`. Reserved —
 /// a node may not register a name containing it.
-// implements: a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45@a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45
+// implements: a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45@6a55d418a00ed4bd5b3644ffa295bc579963314652f4b658ef1e40e185002757
 pub const PEER_SEPARATOR: &str = "::";
 
 impl NodeId {

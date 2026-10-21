@@ -93,13 +93,13 @@ pub trait ConsumerApi {
 
     /// This hub's own nodes, with no peer's — what a peer hub reads, so two
     /// hubs asking each other never recurse.
-    // implements: a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45@a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45
+    // implements: a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45@6a55d418a00ed4bd5b3644ffa295bc579963314652f4b658ef1e40e185002757
     async fn local_topology(&self) -> TopologySnapshot;
 
     /// As [`ConsumerApi::subscribe_events`], but only events published to
     /// this hub itself, never one it carries from a peer — what a peer hub
     /// follows, so an event crosses one hop and never echoes back.
-    // implements: a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45@a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45
+    // implements: a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45@6a55d418a00ed4bd5b3644ffa295bc579963314652f4b658ef1e40e185002757
     async fn subscribe_local_events(
         &self,
         prefix: String,

@@ -2,7 +2,7 @@
 //! Peer hubs: a consumer on one hub sees and reaches another hub's nodes one
 //! hop away, as `<peer>::<node>`, and follows its events.
 //!
-//! implements: a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45@a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45
+//! implements: a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45@6a55d418a00ed4bd5b3644ffa295bc579963314652f4b658ef1e40e185002757
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -131,7 +131,8 @@ fn hub_peers_parses_name_equals_addr() {
     assert!(
         hub::parse_peers("a::b=h:1").is_err(),
         "a peer name may not hold ::"
-    );    assert!(
+    );
+    assert!(
         hub::parse_peers("a=h:1,a=h:2").is_err(),
         "a peer named twice"
     );
@@ -430,10 +431,10 @@ async fn many_subscribers_neither_starve_calls_nor_miss_events() {
         publish(&on_edger, &format!("kudo/probe/{n}")).await;
         let got = tokio::time::timeout(Duration::from_millis(50), async {
             loop {
-                if let Ok(Some(e)) = rxs[0].recv().await {
-                    if owned(e).topic.starts_with("kudo/probe/") {
-                        return;
-                    }
+                if let Ok(Some(e)) = rxs[0].recv().await
+                    && owned(e).topic.starts_with("kudo/probe/")
+                {
+                    return;
                 }
             }
         })

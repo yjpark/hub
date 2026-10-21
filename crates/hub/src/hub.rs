@@ -61,8 +61,18 @@ impl<T: Clone> Hub<T> {
         }
     }
 
-    /// This hub, named and peered by `peers`.
+    /// This hub, named and peered by `peers`; events carried from a peer
+    /// enter this hub's fan-out, never to a peer's own subscription. Needs a
+    /// tokio runtime.
     pub fn with_peers(mut self, peers: Peers) -> Self {
+        let (sink, mut carried) = tokio::sync::mpsc::channel::<hub_protocol::HubEvent>(1024);
+        peers.set_sink(sink);
+        let events = Arc::clone(&self.events);
+        tokio::spawn(async move {
+            while let Some(event) = carried.recv().await {
+                events.lock().await.publish_carried(&event);
+            }
+        });
         self.peers = peers;
         self
     }
@@ -128,24 +138,18 @@ impl<T: Clone> Hub<T> {
         self.events.lock().await.add(prefix, events, hello)
     }
 
-    /// As [`Hub::subscribe_events`], also handing back the subscriber's own
-    /// queue, which a peer hub's events are carried into.
-    pub async fn subscribe_events_with_queue(
+    /// As [`Hub::subscribe_events`], for a peer hub: only events published
+    /// here, never ones carried from a peer.
+    pub async fn subscribe_local_events(
         &self,
         prefix: String,
         events: Tx<hub_protocol::HubEvent>,
-    ) -> (
-        tokio::sync::oneshot::Receiver<()>,
-        tokio::sync::mpsc::Sender<hub_protocol::HubEvent>,
-    ) {
+    ) -> tokio::sync::oneshot::Receiver<()> {
         let hello = hub_protocol::HubEvent {
             topic: hub_protocol::SUBSCRIBED_TOPIC.to_string(),
             payload: prefix.clone().into_bytes(),
         };
-        self.events
-            .lock()
-            .await
-            .add_with_queue(prefix, events, hello)
+        self.events.lock().await.add_local(prefix, events, hello)
     }
 
     /// How many subscribers are attached (test/observability helper).

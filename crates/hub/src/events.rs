@@ -21,6 +21,8 @@ const QUEUE: usize = 256;
 /// (stopping its forwarding task).
 struct Subscriber {
     prefix: String,
+    /// A peer hub's subscription: never handed events carried from a peer.
+    local_only: bool,
     queue: mpsc::Sender<HubEvent>,
     _evict: oneshot::Sender<()>,
 }
@@ -47,17 +49,27 @@ impl EventSubscribers {
         events: Tx<HubEvent>,
         hello: HubEvent,
     ) -> oneshot::Receiver<()> {
-        self.add_with_queue(prefix, events, hello).0
+        self.insert(prefix, events, hello, false)
     }
 
-    /// As [`EventSubscribers::add`], also handing back the subscriber's own
-    /// queue — for events meant for it alone (a peer hub's, carried one hop).
-    pub fn add_with_queue(
+    /// As [`EventSubscribers::add`], for a peer hub: it gets only events
+    /// published here, never ones carried from a peer, so nothing echoes.
+    pub fn add_local(
         &mut self,
         prefix: String,
         events: Tx<HubEvent>,
         hello: HubEvent,
-    ) -> (oneshot::Receiver<()>, mpsc::Sender<HubEvent>) {
+    ) -> oneshot::Receiver<()> {
+        self.insert(prefix, events, hello, true)
+    }
+
+    fn insert(
+        &mut self,
+        prefix: String,
+        events: Tx<HubEvent>,
+        hello: HubEvent,
+        local_only: bool,
+    ) -> oneshot::Receiver<()> {
         self.subscribers.retain(|s| !s.queue.is_closed());
         let (queue, mut queued) = mpsc::channel::<HubEvent>(QUEUE);
         let (alive, gone) = oneshot::channel::<()>();
@@ -83,13 +95,13 @@ impl EventSubscribers {
             }
             // Dropping `alive` ends the subscriber's call.
         });
-        let own = queue.clone();
         self.subscribers.push(Subscriber {
             prefix,
+            local_only,
             queue,
             _evict: evict,
         });
-        (gone, own)
+        gone
     }
 
     /// How many subscribers are attached.
@@ -106,9 +118,19 @@ impl EventSubscribers {
     /// without waiting on any; one whose queue is full or closed is dropped.
     /// Returns how many it was queued for.
     pub fn publish(&mut self, event: &HubEvent) -> u32 {
+        self.fan_out(event, true)
+    }
+
+    /// Queue an event carried from a peer hub: as [`EventSubscribers::publish`],
+    /// but never to another peer's subscription, so it crosses one hop.
+    pub fn publish_carried(&mut self, event: &HubEvent) -> u32 {
+        self.fan_out(event, false)
+    }
+
+    fn fan_out(&mut self, event: &HubEvent, local: bool) -> u32 {
         let mut queued = 0u32;
         self.subscribers.retain(|s| {
-            if !event.topic.starts_with(&s.prefix) {
+            if !event.topic.starts_with(&s.prefix) || (s.local_only && !local) {
                 return !s.queue.is_closed();
             }
             match s.queue.try_send(event.clone()) {

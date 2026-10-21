@@ -125,26 +125,11 @@ impl ConsumerApi for ConsumerApiHandler {
         events: Tx<hub_protocol::HubEvent>,
     ) -> Result<(), HubError> {
         // The channel streams within this call: hold the call open until the
-        // subscriber is gone. Each peer's own events are carried into this
-        // subscriber's queue meanwhile.
-        let (gone, queue) = self
-            .hub
-            .subscribe_events_with_queue(prefix.clone(), events)
-            .await;
-        let peers = self.hub.peers().clone();
-        let follows: Vec<_> = peers
-            .names()
-            .into_iter()
-            .map(|peer| {
-                let (peers, prefix, queue) = (peers.clone(), prefix.clone(), queue.clone());
-                tokio::spawn(async move { peers.follow(peer, prefix, queue).await })
-            })
-            .collect();
-        drop(queue);
+        // subscriber is gone. While it lives, peers' own events are carried
+        // here (one subscription per peer, shared by every subscriber).
+        let _watching = self.hub.peers().watch();
+        let gone = self.hub.subscribe_events(prefix, events).await;
         let _ = gone.await;
-        for follow in follows {
-            follow.abort();
-        }
         Ok(())
     }
 
@@ -157,7 +142,7 @@ impl ConsumerApi for ConsumerApiHandler {
         prefix: String,
         events: Tx<hub_protocol::HubEvent>,
     ) -> Result<(), HubError> {
-        let gone = self.hub.subscribe_events(prefix, events).await;
+        let gone = self.hub.subscribe_local_events(prefix, events).await;
         let _ = gone.await;
         Ok(())
     }
@@ -174,6 +159,10 @@ impl ConsumerApi for ConsumerApiHandler {
                 node,
                 link: target.link,
             },
+            // One hop only: a name still qualified after it is refused.
+            Some((_, node)) if node.split_peer().is_some() => {
+                return Err(RouteError::Hub(HubError::UnknownNode));
+            }
             Some((hub, node)) => {
                 let peer = self
                     .hub
