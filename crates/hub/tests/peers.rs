@@ -462,3 +462,36 @@ async fn many_subscribers_neither_starve_calls_nor_miss_events() {
     .expect("routed");
     assert!(!reply.payload.is_empty());
 }
+
+/// When nobody here follows events any more, the peer lets go of this hub's
+/// subscription too (a quiet peer included), so reloads never pile up calls.
+#[tokio::test]
+async fn a_peer_lets_go_once_nobody_follows() {
+    let (pc, edger) = two_hubs();
+    let c = consumer(&pc).await;
+    let sub = {
+        let c = c.clone();
+        let (tx, rx) = vox::channel::<HubEvent>();
+        (
+            tokio::spawn(async move {
+                let _ = c.subscribe_events("kudo/".into(), tx).await;
+            }),
+            rx,
+        )
+    };
+    eventually(|| {
+        let edger = edger.clone();
+        async move { edger.event_subscriber_count().await == 1 }
+    })
+    .await;
+    sub.0.abort();
+    drop(sub.1);
+    drop(c);
+    for _ in 0..200 {
+        if edger.event_subscriber_count().await == 0 {
+            return;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    panic!("the peer still holds this hub's subscription");
+}

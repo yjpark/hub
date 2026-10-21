@@ -152,6 +152,12 @@ impl<T: Clone> Hub<T> {
         self.events.lock().await.add_local(prefix, events, hello)
     }
 
+    /// How many event subscribers are attached, peer hubs' included
+    /// (test/observability helper).
+    pub async fn event_subscriber_count(&self) -> usize {
+        self.events.lock().await.len()
+    }
+
     /// How many subscribers are attached (test/observability helper).
     pub async fn subscriber_count(&self) -> usize {
         self.inner.lock().await.subscribers.len()
