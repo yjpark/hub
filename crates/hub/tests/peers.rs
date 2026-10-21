@@ -2,7 +2,7 @@
 //! Peer hubs: a consumer on one hub sees and reaches another hub's nodes one
 //! hop away, as `<peer>::<node>`, and follows its events.
 //!
-//! implements: a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45@6a55d418a00ed4bd5b3644ffa295bc579963314652f4b658ef1e40e185002757
+//! implements: a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45@55ffeceb39795324eb405923fdba976d6b9a2e959425e4dee7511dc681794e87
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -486,6 +486,9 @@ async fn a_peer_lets_go_once_nobody_follows() {
     .await;
     sub.0.abort();
     drop(sub.1);
+    // pc learns its own subscriber is gone on its next send (vox cancels
+    // nothing when a caller drops): one event here, then nobody follows.
+    publish(&c, "kudo/after").await;
     drop(c);
     for _ in 0..200 {
         if edger.event_subscriber_count().await == 0 {

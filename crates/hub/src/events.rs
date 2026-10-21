@@ -16,6 +16,12 @@ use vox::Tx;
 
 /// Events one subscriber may fall behind by before it is dropped.
 const QUEUE: usize = 256;
+/// A peer hub's subscription idle this long is pinged (`hub/ping`): a send is
+/// the only way to learn its far side let go, and a quiet one would
+/// otherwise hold the peer's call forever.
+const PEER_PING: std::time::Duration = std::time::Duration::from_secs(5);
+/// The topic of that ping; peer hubs ignore `hub/` topics.
+pub const PING_TOPIC: &str = "hub/ping";
 
 /// One subscriber: its prefix, its queue, and the token whose drop evicts it
 /// (stopping its forwarding task).
@@ -79,10 +85,21 @@ impl EventSubscribers {
         tokio::spawn(async move {
             let mut alive = alive;
             loop {
+                let idle = async {
+                    if local_only {
+                        tokio::time::sleep(PEER_PING).await;
+                    } else {
+                        std::future::pending::<()>().await;
+                    }
+                };
                 let event = tokio::select! {
                     event = queued.recv() => match event {
                         Some(event) => event,
                         None => break,
+                    },
+                    () = idle => HubEvent {
+                        topic: PING_TOPIC.to_string(),
+                        payload: Vec::new(),
                     },
                     _ = alive.closed() => break,
                     _ = &mut evicted => break,
@@ -104,9 +121,18 @@ impl EventSubscribers {
         gone
     }
 
-    /// How many subscribers are attached.
+    /// How many subscribers are attached and still forwarding.
     pub fn len(&self) -> usize {
-        self.subscribers.len()
+        self.subscribers
+            .iter()
+            .filter(|s| !s.queue.is_closed())
+            .count()
+    }
+
+    /// Drop every subscriber but peer hubs': a peer's events were lost on the
+    /// way here, so each re-reads what it follows, as when it falls behind.
+    pub fn drop_followers(&mut self) {
+        self.subscribers.retain(|s| s.local_only);
     }
 
     /// Whether anyone is listening.

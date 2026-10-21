@@ -11,7 +11,7 @@ use vox::Tx;
 
 use crate::discovery::Subscribers;
 use crate::events::EventSubscribers;
-use crate::peers::Peers;
+use crate::peers::{Carried, Peers};
 use crate::registry::Registry;
 
 /// Shared hub state, cloneable across connection tasks.
@@ -65,12 +65,17 @@ impl<T: Clone> Hub<T> {
     /// enter this hub's fan-out, never to a peer's own subscription. Needs a
     /// tokio runtime.
     pub fn with_peers(mut self, peers: Peers) -> Self {
-        let (sink, mut carried) = tokio::sync::mpsc::channel::<hub_protocol::HubEvent>(1024);
+        let (sink, mut carried) = tokio::sync::mpsc::channel::<Carried>(1024);
         peers.set_sink(sink);
         let events = Arc::clone(&self.events);
         tokio::spawn(async move {
-            while let Some(event) = carried.recv().await {
-                events.lock().await.publish_carried(&event);
+            while let Some(carried) = carried.recv().await {
+                match carried {
+                    Carried::Event(event) => {
+                        events.lock().await.publish_carried(&event);
+                    }
+                    Carried::Lost => events.lock().await.drop_followers(),
+                }
             }
         });
         self.peers = peers;

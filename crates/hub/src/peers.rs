@@ -7,7 +7,7 @@
 //! `subscribe_local_events` per peer, held while anyone here subscribes. The
 //! two `local` methods are what keep everything one hop.
 //!
-//! implements: a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45@6a55d418a00ed4bd5b3644ffa295bc579963314652f4b658ef1e40e185002757
+//! implements: a297d880b240fa86f9872753ebc3009c0d3af0dd572ec9eaa2a17a3f815f8d45@55ffeceb39795324eb405923fdba976d6b9a2e959425e4dee7511dc681794e87
 
 use std::future::Future;
 use std::pin::Pin;
@@ -15,7 +15,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use hub_protocol::service::ConsumerApiClient;
-use hub_protocol::{HubEvent, NodeInfo, PEER_SEPARATOR, SUBSCRIBED_TOPIC, TopologySnapshot};
+use hub_protocol::{HubEvent, NodeInfo, PEER_SEPARATOR, TopologySnapshot};
 use tokio::sync::{mpsc, watch};
 use vox::ConnectionHandle;
 
@@ -47,7 +47,15 @@ pub struct Peers {
     /// only while this is above zero.
     watchers: Arc<watch::Sender<usize>>,
     /// Where carried events go: the hub's fan-out, set by the hub.
-    sink: Arc<Mutex<Option<mpsc::Sender<HubEvent>>>>,
+    sink: Arc<Mutex<Option<mpsc::Sender<Carried>>>>,
+}
+
+/// What a follower hands the hub's fan-out.
+pub(crate) enum Carried {
+    /// A peer's own event.
+    Event(HubEvent),
+    /// A peer's subscription ended while followed: events may be lost.
+    Lost,
 }
 
 impl Default for Peers {
@@ -102,14 +110,14 @@ impl Peers {
     }
 
     /// Send carried events into `sink` (the hub's fan-out).
-    pub(crate) fn set_sink(&self, sink: mpsc::Sender<HubEvent>) {
+    pub(crate) fn set_sink(&self, sink: mpsc::Sender<Carried>) {
         *self
             .sink
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(sink);
     }
 
-    fn sink(&self) -> Option<mpsc::Sender<HubEvent>> {
+    fn sink(&self) -> Option<mpsc::Sender<Carried>> {
         self.sink
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -229,8 +237,15 @@ impl Peers {
             if !wait_until(&mut watching, |n| n > 0).await {
                 return;
             }
+            let (Some(client), Some(sink)) = (self.client(&peer).await, self.sink()) else {
+                // The peer is down (its redial runs apart): look again soon,
+                // so it is followed as soon as it is back.
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                continue;
+            };
             let mut live = false;
-            if let (Some(client), Some(sink)) = (self.client(&peer).await, self.sink()) {
+            let mut released = false;
+            {
                 let (tx, mut rx) = vox::channel::<HubEvent>();
                 let call = client.subscribe_local_events(String::new(), tx);
                 tokio::pin!(call);
@@ -242,19 +257,28 @@ impl Peers {
                                 let mut owned = None;
                                 let _ = event.map(|e| owned = Some(e));
                                 let Some(event) = owned else { continue };
-                                if event.topic == SUBSCRIBED_TOPIC {
+                                // The hub's own word: the first says live.
+                                if event.topic.starts_with("hub/") {
                                     live = true;
                                     continue;
                                 }
-                                if sink.send(event).await.is_err() {
+                                if sink.send(Carried::Event(event)).await.is_err() {
                                     return;
                                 }
                             }
                             _ => break,
                         },
-                        _ = wait_until(&mut watching, |n| n == 0) => break,
+                        _ = wait_until(&mut watching, |n| n == 0) => {
+                            released = true;
+                            break;
+                        }
                     }
                 }
+            }
+            // Ended while followed: whatever the peer published meanwhile is
+            // lost, so this hub's followers re-read.
+            if live && !released && sink.send(Carried::Lost).await.is_err() {
+                return;
             }
             if live {
                 wait = Duration::from_secs(1);

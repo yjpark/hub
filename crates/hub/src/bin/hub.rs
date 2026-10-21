@@ -36,6 +36,12 @@ async fn main() -> std::io::Result<()> {
                     "peer hubs need a name: set HUB_NAME",
                 )
             })?;
+        if name.contains(hub_protocol::PEER_SEPARATOR) {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("HUB_NAME {name:?}: a name without `::`"),
+            ));
+        }
         let set = hub::Peers::new(name.clone());
         for (peer, peer_addr) in peers {
             println!("hub {name}: peer {peer} at {peer_addr}");
