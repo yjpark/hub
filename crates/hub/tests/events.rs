@@ -2,7 +2,7 @@
 //! The event channel over a real TCP socket: one consumer publishes, every
 //! consumer subscribed to a matching prefix receives it, byte for byte.
 //!
-//! implements: 19983ca5288dc57fe00341ecd0dc00c1c97138a2312cd965a1b86acc9f2e01a8@19983ca5288dc57fe00341ecd0dc00c1c97138a2312cd965a1b86acc9f2e01a8
+//! implements: 19983ca5288dc57fe00341ecd0dc00c1c97138a2312cd965a1b86acc9f2e01a8@c80bd1aa79624551fdf589040d97c790dc5c651c88db9a771399a2038aa0b9e6
 
 use std::time::Duration;
 

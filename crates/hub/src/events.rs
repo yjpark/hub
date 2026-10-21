@@ -8,7 +8,7 @@
 //! store it was being told about. A subscriber that is gone is dropped too —
 //! whether a send to it fails or its subscribe call was cancelled.
 //!
-//! implements: 19983ca5288dc57fe00341ecd0dc00c1c97138a2312cd965a1b86acc9f2e01a8@19983ca5288dc57fe00341ecd0dc00c1c97138a2312cd965a1b86acc9f2e01a8
+//! implements: 19983ca5288dc57fe00341ecd0dc00c1c97138a2312cd965a1b86acc9f2e01a8@c80bd1aa79624551fdf589040d97c790dc5c651c88db9a771399a2038aa0b9e6
 
 use hub_protocol::HubEvent;
 use tokio::sync::{mpsc, oneshot};
