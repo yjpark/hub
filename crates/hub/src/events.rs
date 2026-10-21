@@ -47,6 +47,17 @@ impl EventSubscribers {
         events: Tx<HubEvent>,
         hello: HubEvent,
     ) -> oneshot::Receiver<()> {
+        self.add_with_queue(prefix, events, hello).0
+    }
+
+    /// As [`EventSubscribers::add`], also handing back the subscriber's own
+    /// queue — for events meant for it alone (a peer hub's, carried one hop).
+    pub fn add_with_queue(
+        &mut self,
+        prefix: String,
+        events: Tx<HubEvent>,
+        hello: HubEvent,
+    ) -> (oneshot::Receiver<()>, mpsc::Sender<HubEvent>) {
         self.subscribers.retain(|s| !s.queue.is_closed());
         let (queue, mut queued) = mpsc::channel::<HubEvent>(QUEUE);
         let (alive, gone) = oneshot::channel::<()>();
@@ -72,12 +83,13 @@ impl EventSubscribers {
             }
             // Dropping `alive` ends the subscriber's call.
         });
+        let own = queue.clone();
         self.subscribers.push(Subscriber {
             prefix,
             queue,
             _evict: evict,
         });
-        gone
+        (gone, own)
     }
 
     /// How many subscribers are attached.

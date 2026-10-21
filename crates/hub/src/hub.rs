@@ -128,6 +128,26 @@ impl<T: Clone> Hub<T> {
         self.events.lock().await.add(prefix, events, hello)
     }
 
+    /// As [`Hub::subscribe_events`], also handing back the subscriber's own
+    /// queue, which a peer hub's events are carried into.
+    pub async fn subscribe_events_with_queue(
+        &self,
+        prefix: String,
+        events: Tx<hub_protocol::HubEvent>,
+    ) -> (
+        tokio::sync::oneshot::Receiver<()>,
+        tokio::sync::mpsc::Sender<hub_protocol::HubEvent>,
+    ) {
+        let hello = hub_protocol::HubEvent {
+            topic: hub_protocol::SUBSCRIBED_TOPIC.to_string(),
+            payload: prefix.clone().into_bytes(),
+        };
+        self.events
+            .lock()
+            .await
+            .add_with_queue(prefix, events, hello)
+    }
+
     /// How many subscribers are attached (test/observability helper).
     pub async fn subscriber_count(&self) -> usize {
         self.inner.lock().await.subscribers.len()

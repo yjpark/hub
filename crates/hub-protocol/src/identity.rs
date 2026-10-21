@@ -23,15 +23,17 @@ pub struct NodeId(pub String);
 pub const PEER_SEPARATOR: &str = "::";
 
 impl NodeId {
-    /// A peer hub's node, as this hub's consumers see it (stub).
+    /// A peer hub's node, as this hub's consumers see it: `edger::yolo`.
     pub fn qualified(hub: &str, node: &NodeId) -> Self {
-        let _ = hub;
-        node.clone()
+        Self(format!("{hub}{PEER_SEPARATOR}{}", node.0))
     }
 
-    /// The peer hub and the node within it, for a qualified id (stub).
+    /// The peer hub and the node within it, for a qualified id; `None` for a
+    /// bare (local) one.
     pub fn split_peer(&self) -> Option<(&str, NodeId)> {
-        None
+        self.0
+            .split_once(PEER_SEPARATOR)
+            .map(|(hub, node)| (hub, NodeId(node.to_string())))
     }
 }
 

@@ -337,3 +337,25 @@ async fn an_event_crosses_one_hop_and_never_echoes() {
         }
     }
 }
+
+/// The same over TCP, with the daemon's own dialer: two hubs on their own
+/// ports, peered, a node on one seen from the other.
+#[tokio::test]
+async fn peers_reach_each_other_over_tcp() {
+    let edger = ServedHub::new().with_peers(Peers::new("edger"));
+    let edger_listener = hub::HubListener::bind("127.0.0.1:0").await.unwrap();
+    let edger_addr = edger_listener.local_addr().to_string();
+    tokio::spawn(edger_listener.serve(edger.clone()));
+
+    let pc = ServedHub::new().with_peers(Peers::new("pc"));
+    pc.peers().add("edger", hub::tcp_dialer(edger_addr));
+    let dir = tempdir::TempDir::new("peers-tcp").unwrap();
+    let _yolo = node_on(&edger, "yolo", dir.path()).await;
+
+    let on_pc = consumer(&pc).await;
+    eventually(|| {
+        let on_pc = on_pc.clone();
+        async move { names(&on_pc.topology().await.unwrap()) == ["edger::yolo"] }
+    })
+    .await;
+}

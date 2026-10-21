@@ -56,6 +56,14 @@ impl NodeIngressHandler {
 
 impl NodeIngress for NodeIngressHandler {
     async fn register(&self, registration: Registration) -> Result<(), HubError> {
+        // `::` names a peer hub's node: no node may take it.
+        if registration.node.0.contains(hub_protocol::PEER_SEPARATOR) {
+            return Err(HubError::Rejected(format!(
+                "node {:?}: `{}` is reserved for peer hubs' nodes",
+                registration.node.0,
+                hub_protocol::PEER_SEPARATOR
+            )));
+        }
         let connection = self.connection().await?;
 
         // The node's own connection is the route back to it (§2.4): no local
@@ -83,7 +91,9 @@ struct ConsumerApiHandler {
 
 impl ConsumerApi for ConsumerApiHandler {
     async fn topology(&self) -> TopologySnapshot {
-        self.hub.snapshot().await
+        let mut snapshot = self.hub.snapshot().await;
+        snapshot.nodes.extend(self.hub.peers().nodes().await);
+        snapshot
     }
 
     async fn subscribe_topology(&self, events: Tx<TopologyEvent>) -> Result<(), HubError> {
@@ -115,9 +125,26 @@ impl ConsumerApi for ConsumerApiHandler {
         events: Tx<hub_protocol::HubEvent>,
     ) -> Result<(), HubError> {
         // The channel streams within this call: hold the call open until the
-        // subscriber is gone.
-        let gone = self.hub.subscribe_events(prefix, events).await;
+        // subscriber is gone. Each peer's own events are carried into this
+        // subscriber's queue meanwhile.
+        let (gone, queue) = self
+            .hub
+            .subscribe_events_with_queue(prefix.clone(), events)
+            .await;
+        let peers = self.hub.peers().clone();
+        let follows: Vec<_> = peers
+            .names()
+            .into_iter()
+            .map(|peer| {
+                let (peers, prefix, queue) = (peers.clone(), prefix.clone(), queue.clone());
+                tokio::spawn(async move { peers.follow(peer, prefix, queue).await })
+            })
+            .collect();
+        drop(queue);
         let _ = gone.await;
+        for follow in follows {
+            follow.abort();
+        }
         Ok(())
     }
 
@@ -140,6 +167,33 @@ impl ConsumerApi for ConsumerApiHandler {
         target: LinkSelector,
         call: RoutedCall,
     ) -> Result<RoutedReply, RouteError> {
+        // A peer hub's node goes one hop, its name stripped; this hub's own
+        // name is just a longer way to say a local node.
+        let target = match target.node.split_peer() {
+            Some((hub, node)) if Some(hub) == self.hub.peers().name() => LinkSelector {
+                node,
+                link: target.link,
+            },
+            Some((hub, node)) => {
+                let peer = self
+                    .hub
+                    .peers()
+                    .client(hub)
+                    .await
+                    .ok_or(RouteError::Hub(HubError::UnknownNode))?;
+                let target = LinkSelector {
+                    node,
+                    link: target.link,
+                };
+                return peer.route(target, call).await.map_err(|e| match e {
+                    vox::VoxError::User(route_error) => *route_error,
+                    other => {
+                        RouteError::Hub(HubError::Rejected(format!("peer hub {hub}: {other:?}")))
+                    }
+                });
+            }
+            None => target,
+        };
         // Which link answers: requested, else stable, else an error (§2.5).
         let client = self.hub.resolve(&target).await.map_err(RouteError::Hub)?;
 
