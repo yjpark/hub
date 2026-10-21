@@ -104,8 +104,8 @@ where
 fn two_hubs() -> (ServedHub, ServedHub) {
     let pc = ServedHub::new().with_peers(Peers::new("pc"));
     let edger = ServedHub::new().with_peers(Peers::new("edger"));
-    pc.peers().add("edger", dialer(&edger));
-    edger.peers().add("pc", dialer(&pc));
+    pc.peers().add("edger", dialer(&edger)).unwrap();
+    edger.peers().add("pc", dialer(&pc)).unwrap();
     (pc, edger)
 }
 
@@ -131,6 +131,9 @@ fn hub_peers_parses_name_equals_addr() {
     assert!(
         hub::parse_peers("a::b=h:1").is_err(),
         "a peer name may not hold ::"
+    );    assert!(
+        hub::parse_peers("a=h:1,a=h:2").is_err(),
+        "a peer named twice"
     );
 }
 
@@ -216,10 +219,12 @@ async fn a_consumer_sees_and_reaches_a_peers_node() {
 #[tokio::test]
 async fn an_unreachable_peer_hides_its_nodes_and_its_calls_fail_fast() {
     let pc = ServedHub::new().with_peers(Peers::new("pc"));
-    pc.peers().add(
-        "edger",
-        Arc::new(|| Box::pin(async { Err("down".to_string()) })),
-    );
+    pc.peers()
+        .add(
+            "edger",
+            Arc::new(|| Box::pin(async { Err("down".to_string()) })),
+        )
+        .unwrap();
     let dir = tempdir::TempDir::new("peers-down").unwrap();
     let _local = node_on(&pc, "local", dir.path()).await;
     let on_pc = consumer(&pc).await;
@@ -348,7 +353,9 @@ async fn peers_reach_each_other_over_tcp() {
     tokio::spawn(edger_listener.serve(edger.clone()));
 
     let pc = ServedHub::new().with_peers(Peers::new("pc"));
-    pc.peers().add("edger", hub::tcp_dialer(edger_addr));
+    pc.peers()
+        .add("edger", hub::tcp_dialer(edger_addr))
+        .unwrap();
     let dir = tempdir::TempDir::new("peers-tcp").unwrap();
     let _yolo = node_on(&edger, "yolo", dir.path()).await;
 
@@ -358,4 +365,99 @@ async fn peers_reach_each_other_over_tcp() {
         async move { names(&on_pc.topology().await.unwrap()) == ["edger::yolo"] }
     })
     .await;
+}
+
+/// A peer never forwards a call onward: a name still qualified after one hop
+/// is refused, not routed again.
+#[tokio::test]
+async fn a_call_never_goes_two_hops() {
+    let (pc, edger) = two_hubs();
+    let dir = tempdir::TempDir::new("peers-hops").unwrap();
+    let _local = node_on(&pc, "local", dir.path()).await;
+    let _yolo = node_on(&edger, "yolo", dir.path()).await;
+    let on_pc = consumer(&pc).await;
+    eventually(|| {
+        let on_pc = on_pc.clone();
+        async move { names(&on_pc.topology().await.unwrap()).len() == 2 }
+    })
+    .await;
+    let err = on_pc
+        .route(
+            LinkSelector::node(NodeId("edger::pc::local".into())),
+            read("x"),
+        )
+        .await
+        .expect_err("two hops refused");
+    assert!(
+        matches!(&err, vox::VoxError::User(e) if matches!(**e, RouteError::Hub(hub_protocol::HubError::UnknownNode))),
+        "{err:?}"
+    );
+}
+
+/// A hub cannot peer with itself or with one peer twice.
+#[test]
+fn a_hub_refuses_itself_and_a_second_peer_of_one_name() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let pc = ServedHub::new().with_peers(Peers::new("pc"));
+        let down: Dialer = Arc::new(|| Box::pin(async { Err("down".to_string()) }));
+        assert!(pc.peers().add("pc", down.clone()).is_err(), "itself");
+        pc.peers().add("edger", down.clone()).unwrap();
+        assert!(pc.peers().add("edger", down).is_err(), "twice");
+        assert_eq!(pc.peers().names(), ["edger"]);
+    });
+}
+
+/// Many subscribers on one hub share one subscription per peer: every one of
+/// them still gets the peer's events, and calls to the peer still go through.
+#[tokio::test]
+async fn many_subscribers_neither_starve_calls_nor_miss_events() {
+    let (pc, edger) = two_hubs();
+    let dir = tempdir::TempDir::new("peers-many").unwrap();
+    std::fs::write(dir.path().join("motd.txt"), "still answering").unwrap();
+    let _yolo = node_on(&edger, "yolo", dir.path()).await;
+    let mut rxs = Vec::new();
+    for _ in 0..4 {
+        let c = consumer(&pc).await;
+        for _ in 0..25 {
+            rxs.push(subscribe(&c).await);
+        }
+    }
+    let on_edger = consumer(&edger).await;
+    // Until the first subscriber follows edger.
+    let mut crossed = false;
+    for n in 0..100 {
+        publish(&on_edger, &format!("kudo/probe/{n}")).await;
+        let got = tokio::time::timeout(Duration::from_millis(50), async {
+            loop {
+                if let Ok(Some(e)) = rxs[0].recv().await {
+                    if owned(e).topic.starts_with("kudo/probe/") {
+                        return;
+                    }
+                }
+            }
+        })
+        .await;
+        if got.is_ok() {
+            crossed = true;
+            break;
+        }
+    }
+    assert!(crossed);
+    publish(&on_edger, "kudo/everyone").await;
+    for rx in &mut rxs {
+        until_all(rx, &["kudo/everyone"]).await;
+    }
+    let on_pc = consumer(&pc).await;
+    let reply = tokio::time::timeout(
+        Duration::from_secs(5),
+        on_pc.route(
+            LinkSelector::node(NodeId("edger::yolo".into())),
+            read("motd.txt"),
+        ),
+    )
+    .await
+    .expect("not starved")
+    .expect("routed");
+    assert!(!reply.payload.is_empty());
 }

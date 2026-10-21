@@ -74,7 +74,7 @@ impl Peers {
 
     /// Dial `peer` with `dialer`, and redial whenever it drops, backing off
     /// up to thirty seconds while it is down. Needs a tokio runtime.
-    pub fn add(&self, peer: impl Into<String>, dialer: Dialer) {
+    pub fn add(&self, peer: impl Into<String>, dialer: Dialer) -> Result<(), String> {
         let peer = peer.into();
         self.with(|peers| {
             peers.push(Peer {
@@ -99,6 +99,7 @@ impl Peers {
                 wait = (wait * 2).min(REDIAL_MAX);
             }
         });
+        Ok(())
     }
 
     /// The peers' names, in the order they were added.

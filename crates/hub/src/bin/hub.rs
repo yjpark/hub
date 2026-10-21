@@ -37,7 +37,8 @@ async fn main() -> std::io::Result<()> {
         let set = hub::Peers::new(name.clone());
         for (peer, peer_addr) in peers {
             println!("hub {name}: peer {peer} at {peer_addr}");
-            set.add(peer, hub::tcp_dialer(peer_addr));
+            set.add(peer, hub::tcp_dialer(peer_addr))
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, e))?;
         }
         hub = hub.with_peers(set);
     }
