@@ -29,6 +29,26 @@ fn owned(got: vox::SelfRef<HubEvent>) -> HubEvent {
     out.expect("an event")
 }
 
+/// Subscribe to `prefix` on a connection of its own, and wait until the hub
+/// says the subscription is live.
+async fn subscribed(addr: &str, prefix: &str) -> vox::Rx<HubEvent> {
+    let consumer = consumer_for(addr).await;
+    let (tx, mut rx) = vox::channel::<HubEvent>();
+    let prefix = prefix.to_string();
+    tokio::spawn(async move {
+        let _ = consumer.subscribe_events(prefix, tx).await;
+    });
+    let hello = owned(
+        tokio::time::timeout(Duration::from_secs(5), rx.recv())
+            .await
+            .expect("the hub answers in time")
+            .expect("a value")
+            .expect("an event"),
+    );
+    assert_eq!(hello.topic, hub_protocol::SUBSCRIBED_TOPIC);
+    rx
+}
+
 fn event(topic: &str, payload: &[u8]) -> HubEvent {
     HubEvent {
         topic: topic.to_string(),
@@ -42,20 +62,12 @@ async fn an_event_reaches_every_matching_subscriber_and_no_other() {
     let addr = listener.local_addr().to_string();
     tokio::spawn(async move { listener.serve(ServedHub::new()).await });
 
-    let follows_c1 = consumer_for(&addr).await;
-    let follows_c2 = consumer_for(&addr).await;
     let publisher = consumer_for(&addr).await;
-
-    let (tx1, mut rx1) = vox::channel::<HubEvent>();
-    follows_c1
-        .subscribe_events("kudo/context/c1/".to_string(), tx1)
-        .await
-        .expect("subscribe c1");
-    let (tx2, mut rx2) = vox::channel::<HubEvent>();
-    follows_c2
-        .subscribe_events("kudo/context/c2/".to_string(), tx2)
-        .await
-        .expect("subscribe c2");
+    // A subscription streams within its call: the call stays open while the
+    // subscriber listens, so it runs on a task of its own. The hub's first
+    // event says the subscription is live.
+    let mut rx1 = subscribed(&addr, "kudo/context/c1/").await;
+    let mut rx2 = subscribed(&addr, "kudo/context/c2/").await;
 
     // Opaque bytes, including ones that are not text.
     let payload = [0u8, 1, 2, 255, b'\n'];
